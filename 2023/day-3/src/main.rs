@@ -1,7 +1,8 @@
 use regex::Regex;
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use std::{collections::HashSet, fs::File};
 
 const NOT_SYMBOLS: &str = ".0123456789";
 const SYMBOLS: &str = "%-+*#/@=$&";
@@ -12,23 +13,62 @@ const SYMBOLS: &str = "%-+*#/@=$&";
 
 fn main() {
     let input = PathBuf::from("input.txt");
-    part1(input);
+    part1(&input);
+    part2(&input);
 }
 
 /*-------------------------------------------------------------------------------------------------
 Part 1
 -------------------------------------------------------------------------------------------------*/
 
-fn part1(input: PathBuf) -> i32 {
+fn part1(input: &PathBuf) -> u64 {
     let engine_schematic = read_input(&input);
 
     let symbols = identify_symbols(&engine_schematic);
     println!("Symbols: {:?}", symbols);
 
     let part_numbers = get_part_numbers(&engine_schematic);
-    let sum = part_numbers.iter().sum();
+    let sum = part_numbers.iter().map(|p| p.value).sum::<u64>();
 
     println!("Part 1 Answer: {}", sum);
+
+    sum
+}
+
+fn part2(input: &PathBuf) -> u64 {
+    let engine_schematic = read_input(&input);
+    let part_numbers = get_part_numbers(&engine_schematic);
+
+    // Build a map of possible gears from the part number data.
+    let mut possible_gears: HashMap<SchematicSymbol, Vec<PartNumber>> = HashMap::new();
+    for part_number in &part_numbers {
+        for symbol in &part_number.adjacent_symbols {
+            if symbol.symbol == '*' {
+                possible_gears
+                    .entry(*symbol)
+                    .or_insert_with(Vec::new)
+                    .push(part_number.clone());
+            };
+        }
+    }
+
+    let gears: Vec<Gear> = possible_gears
+        .iter()
+        .flat_map(|(symbol, part_numbers)| {
+            if part_numbers.len() == 2 {
+                Some(Gear {
+                    location: symbol.location,
+                    adjacent_values: [part_numbers[0].value, part_numbers[1].value],
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let sum = gears.iter().map(|g| g.ratio()).sum::<u64>();
+
+    println!("Part 2 Answer: {}", sum);
 
     sum
 }
@@ -37,26 +77,39 @@ fn part1(input: PathBuf) -> i32 {
   Core Functions
 -------------------------------------------------------------------------------------------------*/
 
-fn get_part_numbers(engine_schematic: &Vec<String>) -> Vec<i32> {
+fn get_part_numbers(engine_schematic: &Vec<String>) -> Vec<PartNumber> {
     let bounds = ArrayBounds::new(&engine_schematic);
     let number_regex = Regex::new(r"\d+").unwrap();
 
-    let part_numbers: Vec<i32> = engine_schematic
+    let part_numbers: Vec<PartNumber> = engine_schematic
         .iter()
         .enumerate()
         .flat_map(|(row, line)| {
             number_regex.find_iter(line).flat_map(move |regex_match| {
                 let adjacent_spaces =
                     box_coordinates(row, regex_match.start(), regex_match.end(), bounds);
-                if adjacent_spaces.iter().any(|space| {
-                    SYMBOLS.contains(
-                        engine_schematic[space.row]
+                let adjacent_symbols: Vec<SchematicSymbol> = adjacent_spaces
+                    .iter()
+                    .filter_map(|space| {
+                        let symbol = engine_schematic[space.row]
                             .chars()
                             .nth(space.column)
-                            .unwrap(),
-                    )
-                }) {
-                    Some(regex_match.as_str().parse::<i32>().unwrap())
+                            .unwrap();
+                        if SYMBOLS.contains(symbol) {
+                            Some(SchematicSymbol {
+                                symbol,
+                                location: space.to_owned(),
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                if adjacent_symbols.len() > 0 {
+                    Some(PartNumber {
+                        value: regex_match.as_str().parse::<u64>().unwrap(),
+                        adjacent_symbols,
+                    })
                 } else {
                     None
                 }
@@ -91,7 +144,32 @@ fn identify_symbols(engine_schematic: &Vec<String>) -> String {
   Helper Data Structures
 --------------------------------------------------------------------------------------*/
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
+struct PartNumber {
+    value: u64,
+    adjacent_symbols: Vec<SchematicSymbol>,
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+struct SchematicSymbol {
+    symbol: char,
+    location: ArrayCoordinates,
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+struct Gear {
+    location: ArrayCoordinates,
+    adjacent_values: [u64; 2],
+}
+
+impl Gear {
+    /// Returns the "ratio" (product) of the two adjacent part number values.
+    fn ratio(&self) -> u64 {
+        self.adjacent_values[0] * self.adjacent_values[1]
+    }
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 struct ArrayCoordinates {
     row: usize,
     column: usize,
@@ -207,30 +285,51 @@ mod tests {
     }
 
     /*----------------------------------------------------------------------------------
-      Test Example Data
+      Test Part 1
     ----------------------------------------------------------------------------------*/
 
     #[test]
     fn test_get_part_numbers() {
         let input = PathBuf::from("part1_example.txt");
         let engine_schematic = read_input(&input);
+
         let part_numbers = get_part_numbers(&engine_schematic);
 
-        let expected_part_numbers = vec![467, 35, 633, 617, 592, 755, 664, 598];
-        assert_eq!(part_numbers, expected_part_numbers);
+        let part_number_values: Vec<u64> = part_numbers.iter().map(|p| p.value).collect();
+        let expected_part_number_values = vec![467, 35, 633, 617, 592, 755, 664, 598];
+
+        assert_eq!(part_number_values, expected_part_number_values);
     }
 
     #[test]
     fn test_part1_example() {
         let input = PathBuf::from("part1_example.txt");
-        let answer = part1(input);
+        let answer = part1(&input);
         assert_eq!(answer, 4361);
     }
 
     #[test]
     fn test_part1_solution() {
         let input = PathBuf::from("input.txt");
-        let answer = part1(input);
+        let answer = part1(&input);
         assert_eq!(answer, 539637);
+    }
+
+    /*----------------------------------------------------------------------------------
+      Test Part 2
+    ----------------------------------------------------------------------------------*/
+
+    #[test]
+    fn test_part2_example() {
+        let input = PathBuf::from("part2_example.txt");
+        let answer = part2(&input);
+        assert_eq!(answer, 467835);
+    }
+
+    #[test]
+    fn test_part2_solution() {
+        let input = PathBuf::from("input.txt");
+        let answer = part2(&input);
+        assert_eq!(answer, 82818007);
     }
 }
