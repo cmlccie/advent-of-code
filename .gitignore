@@ -180,4 +180,17 @@ Cargo.lock
 **/*.rs.bk
 
 # MSVC Windows builds of rustc generate these, which store debugging information
+
+# --------------------------------------------------------------------------------------
+# .gitignore for Swift projects
+# --------------------------------------------------------------------------------------
+
 *.pdb
+.DS_Store
+.build
+Packages
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
