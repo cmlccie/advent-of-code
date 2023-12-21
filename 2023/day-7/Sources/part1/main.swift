@@ -141,16 +141,16 @@ func parseInput(_ input: String) -> [Hand] {
 func main(inputPath: String) -> Int {
     let input = getInput(from: inputPath)
 
-    var list = parseInput(input)
-    list.sort(by: <)
+    var handList = parseInput(input)
+    handList.sort(by: <)
 
-    let winnings = list.enumerated().map { (index, item) in
-        return item.bid * (index + 1)
+    let winnings = handList.enumerated().map { (index, hand) in
+        return hand.bid * (index + 1)
     }.reduce(0, +)
 
     // Print the results
-    for item in list {
-        print(item)
+    for hand in handList {
+        print(hand)
     }
 
     print("Winnings: \(winnings)")
