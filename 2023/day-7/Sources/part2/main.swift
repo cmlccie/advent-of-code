@@ -70,22 +70,16 @@ struct Hand {
         // Determine hand type
         var cards: [Card] = []
         var cardCounter: [Card: Int] = [:]
-        var jokerCount = 0
 
         for cardCharacter in hand {
             let card = Card.from(cardCharacter)
             cards.append(card)
-
-            if card == .Joker {
-                jokerCount += 1
-            }
-            else {
-                cardCounter[card] = (cardCounter[card] ?? 0) + 1
-            }
+            cardCounter[card] = (cardCounter[card] ?? 0) + 1
         }
 
         self.cards = cards
 
+        let jokerCount = cardCounter.removeValue(forKey: .Joker) ?? 0
         let cardCounts: [Int] = cardCounter.values.sorted(by: >)
         switch (cardCounts, jokerCount) {
         case ([5], 0), ([4], 1), ([3], 2), ([2], 3), ([1], 4), ([], 5):
@@ -148,16 +142,16 @@ func parseInput(_ input: String) -> [Hand] {
 func main(inputPath: String) -> Int {
     let input = getInput(from: inputPath)
 
-    var list = parseInput(input)
-    list.sort(by: <)
+    var handList = parseInput(input)
+    handList.sort(by: <)
 
-    let winnings = list.enumerated().map { (index, item) in
-        return item.bid * (index + 1)
+    let winnings = handList.enumerated().map { (index, hand) in
+        return hand.bid * (index + 1)
     }.reduce(0, +)
 
     // Print the results
-    for item in list {
-        print(item)
+    for hand in handList {
+        print(hand)
     }
 
     print("Winnings: \(winnings)")
