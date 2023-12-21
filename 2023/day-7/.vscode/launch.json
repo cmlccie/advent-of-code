@@ -1,0 +1,64 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-7}",
+      "name": "Debug day-7",
+      "program": "${workspaceFolder:day-7}/.build/debug/day-7",
+      "preLaunchTask": "swift: Build Debug day-7"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-7}",
+      "name": "Release day-7",
+      "program": "${workspaceFolder:day-7}/.build/release/day-7",
+      "preLaunchTask": "swift: Build Release day-7"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-7}",
+      "name": "Debug part1",
+      "program": "${workspaceFolder:day-7}/.build/debug/part1",
+      "preLaunchTask": "swift: Build Debug part1"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-7}",
+      "name": "Release part1",
+      "program": "${workspaceFolder:day-7}/.build/release/part1",
+      "preLaunchTask": "swift: Build Release part1"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-7}",
+      "name": "Debug part2",
+      "program": "${workspaceFolder:day-7}/.build/debug/part2",
+      "preLaunchTask": "swift: Build Debug part2"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-7}",
+      "name": "Release part2",
+      "program": "${workspaceFolder:day-7}/.build/release/part2",
+      "preLaunchTask": "swift: Build Release part2"
+    }
+  ]
+}
