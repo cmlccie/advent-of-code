@@ -1,0 +1,44 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-8}",
+      "name": "Debug day-8",
+      "program": "${workspaceFolder:day-8}/.build/debug/day-8",
+      "preLaunchTask": "swift: Build Debug day-8"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-8}",
+      "name": "Release day-8",
+      "program": "${workspaceFolder:day-8}/.build/release/day-8",
+      "preLaunchTask": "swift: Build Release day-8"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-8}",
+      "name": "Debug day8",
+      "program": "${workspaceFolder:day-8}/.build/debug/day8",
+      "preLaunchTask": "swift: Build Debug day8"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:day-8}",
+      "name": "Release day8",
+      "program": "${workspaceFolder:day-8}/.build/release/day8",
+      "preLaunchTask": "swift: Build Release day8"
+    }
+  ]
+}
