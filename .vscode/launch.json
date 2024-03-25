@@ -5,20 +5,20 @@
       "request": "launch",
       "sourceLanguages": ["swift"],
       "args": [],
-      "cwd": "${workspaceFolder:advent-of-code}/2023/swift-aoc",
-      "name": "Debug swift-aoc (2023/swift-aoc)",
-      "program": "${workspaceFolder:advent-of-code}/2023/swift-aoc/.build/debug/swift-aoc",
-      "preLaunchTask": "swift: Build Debug swift-aoc (2023/swift-aoc)"
+      "cwd": "${workspaceFolder:advent-of-code}/2023/swift",
+      "name": "Debug swift_aoc (2023/swift)",
+      "program": "${workspaceFolder:advent-of-code}/2023/swift/.build/debug/swift_aoc",
+      "preLaunchTask": "swift: Build Debug swift_aoc (2023/swift)"
     },
     {
       "type": "lldb",
       "request": "launch",
       "sourceLanguages": ["swift"],
       "args": [],
-      "cwd": "${workspaceFolder:advent-of-code}/2023/swift-aoc",
-      "name": "Release swift-aoc (2023/swift-aoc)",
-      "program": "${workspaceFolder:advent-of-code}/2023/swift-aoc/.build/release/swift-aoc",
-      "preLaunchTask": "swift: Build Release swift-aoc (2023/swift-aoc)"
+      "cwd": "${workspaceFolder:advent-of-code}/2023/swift",
+      "name": "Release swift_aoc (2023/swift)",
+      "program": "${workspaceFolder:advent-of-code}/2023/swift/.build/release/swift_aoc",
+      "preLaunchTask": "swift: Build Release swift_aoc (2023/swift)"
     }
   ]
 }

@@ -1,41 +1,42 @@
+import ArgumentParser
 import Foundation
 
 /*--------------------------------------------------------------------------------------
   Cards
 --------------------------------------------------------------------------------------*/
 
-enum Card: Int, Equatable {
-    case Joker = 1
-    case Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace
+private enum Card: Int, Equatable {
+    case two = 2
+    case three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace
 
     static func from(_ char: Character) -> Card {
         switch char {
-        case "J":
-            return .Joker
         case "2":
-            return .Two
+            return .two
         case "3":
-            return .Three
+            return .three
         case "4":
-            return .Four
+            return .four
         case "5":
-            return .Five
+            return .five
         case "6":
-            return .Six
+            return .six
         case "7":
-            return .Seven
+            return .seven
         case "8":
-            return .Eight
+            return .eight
         case "9":
-            return .Nine
+            return .nine
         case "T":
-            return .Ten
+            return .ten
+        case "J":
+            return .jack
         case "Q":
-            return .Queen
+            return .queen
         case "K":
-            return .King
+            return .king
         case "A":
-            return .Ace
+            return .ace
         default:
             fatalError("Invalid card: \(char)")
         }
@@ -52,11 +53,11 @@ extension Card: Comparable {
   Hands
 --------------------------------------------------------------------------------------*/
 
-enum HandType: Int {
-    case HighCard, OnePair, TwoPairs, ThreeOfAKind, FullHouse, FourOfAKind, FiveOfAKind
+private enum HandType: Int {
+    case highCard, onePair, twoPairs, threeOfAKind, fullHouse, fourOfAKind, fiveOfAKind
 }
 
-struct Hand {
+private struct Hand {
     let hand: String
     let bid: Int
 
@@ -79,23 +80,22 @@ struct Hand {
 
         self.cards = cards
 
-        let jokerCount = cardCounter.removeValue(forKey: .Joker) ?? 0
         let cardCounts: [Int] = cardCounter.values.sorted(by: >)
-        switch (cardCounts, jokerCount) {
-        case ([5], 0), ([4], 1), ([3], 2), ([2], 3), ([1], 4), ([], 5):
-            self.handType = .FiveOfAKind
-        case ([4, 1], 0), ([3, 1], 1), ([2, 1], 2), ([1, 1], 3):
-            self.handType = .FourOfAKind
-        case ([3, 2], 0), ([2, 2], 1):
-            self.handType = .FullHouse
-        case ([3, 1, 1], 0), ([2, 1, 1], 1), ([1, 1, 1], 2):
-            self.handType = .ThreeOfAKind
-        case ([2, 2, 1], 0):
-            self.handType = .TwoPairs
-        case ([2, 1, 1, 1], 0), ([1, 1, 1, 1], 1):
-            self.handType = .OnePair
-        case ([1, 1, 1, 1, 1], 0):
-            self.handType = .HighCard
+        switch cardCounts {
+        case [5]:
+            self.handType = .fiveOfAKind
+        case [4, 1]:
+            self.handType = .fourOfAKind
+        case [3, 2]:
+            self.handType = .fullHouse
+        case [3, 1, 1]:
+            self.handType = .threeOfAKind
+        case [2, 2, 1]:
+            self.handType = .twoPairs
+        case [2, 1, 1, 1]:
+            self.handType = .onePair
+        case [1, 1, 1, 1, 1]:
+            self.handType = .highCard
         default:
             fatalError("Invalid hand: \(hand)")
         }
@@ -121,12 +121,7 @@ extension Hand: Comparable {
   Helper Functions
 --------------------------------------------------------------------------------------*/
 
-func getInput(from path: String) -> String {
-    let fileData = FileManager.default.contents(atPath: path)!
-    return String(data: fileData, encoding: .utf8)!
-}
-
-func parseInput(_ input: String) -> [Hand] {
+private func parseInput(_ input: String) -> [Hand] {
     return input.split(separator: "\n").map { line in
         let parts = line.split(separator: " ")
         let hand = String(parts[0])
@@ -139,7 +134,7 @@ func parseInput(_ input: String) -> [Hand] {
   Main
 --------------------------------------------------------------------------------------*/
 
-func main(inputPath: String) -> Int {
+func day7Part1(inputPath: String) -> Int {
     let input = getInput(from: inputPath)
 
     var handList = parseInput(input)
@@ -158,5 +153,3 @@ func main(inputPath: String) -> Int {
 
     return winnings
 }
-
-_ = main(inputPath: "input.txt")
