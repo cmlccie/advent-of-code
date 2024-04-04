@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import Logging
 
 /*--------------------------------------------------------------------------------------
   Cards
@@ -136,21 +137,18 @@ private func parseInput(_ input: String) -> [Hand] {
 --------------------------------------------------------------------------------------*/
 
 func day7Part2(inputPath: String) -> Int {
+    let logger = Logger(label: "day7.part2")
     let input = getInput(from: inputPath)
 
     var handList = parseInput(input)
     handList.sort(by: <)
+    logger.debug("Hands: \(handList as AnyObject)")
 
     let winnings = handList.enumerated().map { (index, hand) in
         return hand.bid * (index + 1)
     }.reduce(0, +)
 
-    // Print the results
-    for hand in handList {
-        print(hand)
-    }
-
-    print("Winnings: \(winnings)")
+    print("Part 2 Winnings: \(winnings)")
 
     return winnings
 }

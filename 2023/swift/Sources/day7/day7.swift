@@ -14,22 +14,22 @@ extension SwiftAOC {
         struct Part1: ParsableCommand {
             static var configuration = CommandConfiguration(abstract: "Day 7: Camel Cards - Part 1")
 
-            @Argument(help: "Path to the input file.")
-            var inputPath: String
+            @OptionGroup var args: SwiftAOC.StandardArgs
 
             mutating func run() throws {
-                _ = day7Part1(inputPath: inputPath)
+                initLogging(args: args)
+                _ = day7Part1(inputPath: args.inputPath)
             }
         }
 
         struct Part2: ParsableCommand {
             static var configuration = CommandConfiguration(abstract: "Day 7: Camel Cards - Part 2")
 
-            @Argument(help: "Path to the input file.")
-            var inputPath: String
+            @OptionGroup var args: SwiftAOC.StandardArgs
 
             mutating func run() throws {
-                _ = day7Part2(inputPath: inputPath)
+                initLogging(args: args)
+                _ = day7Part2(inputPath: args.inputPath)
             }
         }
     }
