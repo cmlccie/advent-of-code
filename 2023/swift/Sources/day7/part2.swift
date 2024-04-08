@@ -136,9 +136,9 @@ private func parseInput(_ input: String) -> [Hand] {
   Main
 --------------------------------------------------------------------------------------*/
 
-func day7Part2(inputPath: String) -> Int {
+func day7Part2(inputPath: String) throws -> Int {
     let logger = Logger(label: "day7.part2")
-    let input = getInput(from: inputPath)
+    let input = try getInput(from: inputPath)
 
     var handList = parseInput(input)
     handList.sort(by: <)

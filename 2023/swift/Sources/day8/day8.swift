@@ -1,10 +1,49 @@
-import Foundation
+import ArgumentParser
+
+/*-------------------------------------------------------------------------------------------------
+  Day 8: Haunted Wasteland
+-------------------------------------------------------------------------------------------------*/
+
+extension SwiftAOC {
+    struct Day8: ParsableCommand {
+        static var configuration = CommandConfiguration(
+            abstract: "Day 8: Haunted Wasteland",
+            subcommands: [Part1.self, Part2.self]
+        )
+
+        struct Part1: ParsableCommand {
+            static var configuration = CommandConfiguration(
+                abstract: "Day 8: Haunted Wasteland - Part 1"
+            )
+
+            @OptionGroup var args: SwiftAOC.StandardArgs
+
+            mutating func run() throws {
+                initLogging(args: args)
+                _ = try day8Part1(inputPath: args.inputPath)
+            }
+        }
+
+        struct Part2: ParsableCommand {
+            static var configuration = CommandConfiguration(
+                abstract: "Day 8: Haunted Wasteland - Part 2"
+            )
+
+            @OptionGroup var args: SwiftAOC.StandardArgs
+
+            mutating func run() throws {
+                initLogging(args: args)
+                _ = try day8Part2(inputPath: args.inputPath)
+            }
+        }
+    }
+}
 
 /*--------------------------------------------------------------------------------------
   Directions
 --------------------------------------------------------------------------------------*/
 
-struct Directions: CustomStringConvertible {
+private struct Directions: CustomStringConvertible {
     let directions: String
 
     init(_ directions: String) {
@@ -22,7 +61,7 @@ extension Directions: Sequence {
     }
 }
 
-class DirectionsIterator: IteratorProtocol {
+private class DirectionsIterator: IteratorProtocol {
     let directions: Directions
     var index: String.Index
 
@@ -47,7 +86,7 @@ class DirectionsIterator: IteratorProtocol {
   Labeled Nodes
 --------------------------------------------------------------------------------------*/
 
-class Node: CustomStringConvertible {
+private class Node: CustomStringConvertible {
     var value: String
 
     var left: Node?
@@ -78,7 +117,7 @@ class Node: CustomStringConvertible {
   Network
 --------------------------------------------------------------------------------------*/
 
-class Network {
+private class Network {
     var nodes: [String: Node] = [:]
 
     func addNode(value: String, left leftValue: String, right rightValue: String) -> Node {
@@ -98,16 +137,10 @@ class Network {
 }
 
 /*--------------------------------------------------------------------------------------
-  Helper Functions
+  Parse Input
 --------------------------------------------------------------------------------------*/
 
-func getInput(from path: String) -> String {
-    let fileData = FileManager.default.contents(atPath: path)!
-    return String(data: fileData, encoding: .utf8)!
-}
-
-@available(macOS 13.0, *)
-func parseInput(_ input: String) -> (Directions, Network) {
+private func parseInput(_ input: String) -> (Directions, Network) {
     let lines = input.components(separatedBy: "\n")
     let directions = Directions(lines[0])
     let network = Network()
@@ -137,9 +170,8 @@ func parseInput(_ input: String) -> (Directions, Network) {
   Part 1
 --------------------------------------------------------------------------------------*/
 
-@available(macOS 13.0, *)
-func part1(inputPath: String) -> Int {
-    let input = getInput(from: inputPath)
+func day8Part1(inputPath: String) throws -> Int {
+    let input = try getInput(from: inputPath)
     let (directions, network) = parseInput(input)
 
     let startNode = network.nodes["AAA"]
@@ -170,7 +202,7 @@ func part1(inputPath: String) -> Int {
   Part 2
 --------------------------------------------------------------------------------------*/
 
-func getPeriod(startingNode: Node, directions: Directions, network: Network) -> Int {
+private func getPeriod(startingNode: Node, directions: Directions, network: Network) -> Int {
     var currentNode = startingNode
     var steps = 0
     for direction in directions {
@@ -183,49 +215,8 @@ func getPeriod(startingNode: Node, directions: Directions, network: Network) -> 
     return steps
 }
 
-func calculatePrimeFactors(of n: Int) -> [Int: Int] {
-    var n = n
-    var factors: [Int] = []
-    var divisor = 2
-    while n > 1 {
-        while n % divisor == 0 {
-            factors.append(divisor)
-            n /= divisor
-        }
-        divisor += 1
-        if divisor * divisor > n {
-            if n > 1 { factors.append(n) }
-            break
-        }
-    }
-
-    // Count the number of times each factor appears
-    var factorCounts: [Int: Int] = [:]
-    for factor in factors {
-        factorCounts[factor] = (factorCounts[factor] ?? 0) + 1
-    }
-
-    return factorCounts
-}
-
-func lcm(_ numbers: [Int]) -> Int {
-    let primeFactorsList = numbers.map { calculatePrimeFactors(of: $0) }
-    var largestPrimeFactors: [Int: Int] = [:]
-    for primeFactors in primeFactorsList {
-        for (prime, power) in primeFactors {
-            largestPrimeFactors[prime] = max(largestPrimeFactors[prime] ?? 0, power)
-        }
-    }
-
-    let leastCommonMultiple = largestPrimeFactors.reduce(1) { result, factor in
-        result * pow(Decimal(factor.key), factor.value)
-    }
-    return (leastCommonMultiple as NSDecimalNumber).intValue
-}
-
-@available(macOS 13.0, *)
-func part2(inputPath: String) -> Int {
-    let input = getInput(from: inputPath)
+func day8Part2(inputPath: String) throws -> Int {
+    let input = try getInput(from: inputPath)
     let (directions, network) = parseInput(input)
 
     let startingNodes = network.nodes.values.filter { node in node.value.hasSuffix("A") }
@@ -242,12 +233,4 @@ func part2(inputPath: String) -> Int {
     print("Part 2: We will reach the end after \(steps) steps.")
 
     return steps
-}
-
-if #available(macOS 13.0, *) {
-    _ = part1(inputPath: "input.txt")
-    _ = part2(inputPath: "input.txt")
-}
-else {
-    fatalError("Requires macOS 13.0")
 }

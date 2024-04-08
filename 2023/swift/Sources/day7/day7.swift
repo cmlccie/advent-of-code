@@ -18,7 +18,7 @@ extension SwiftAOC {
 
             mutating func run() throws {
                 initLogging(args: args)
-                _ = day7Part1(inputPath: args.inputPath)
+                _ = try day7Part1(inputPath: args.inputPath)
             }
         }
 
@@ -29,7 +29,7 @@ extension SwiftAOC {
 
             mutating func run() throws {
                 initLogging(args: args)
-                _ = day7Part2(inputPath: args.inputPath)
+                _ = try day7Part2(inputPath: args.inputPath)
             }
         }
     }

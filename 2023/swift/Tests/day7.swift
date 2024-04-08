@@ -9,8 +9,8 @@ final class Day7Part1: XCTestCase {
         XCTAssert(loggingSystemBootstrapped)
     }
 
-    func testSolution() {
-        let answer = swift_aoc.day7Part1(inputPath: "../inputs/day7/input.txt")
+    func testSolution() throws {
+        let answer = try day7Part1(inputPath: "../inputs/day7/input.txt")
         XCTAssertEqual(answer, 247_815_719)
     }
 }
@@ -21,8 +21,8 @@ final class Day7Part2: XCTestCase {
         XCTAssert(loggingSystemBootstrapped)
     }
 
-    func testSolution() {
-        let answer = swift_aoc.day7Part2(inputPath: "../inputs/day7/input.txt")
+    func testSolution() throws {
+        let answer = try day7Part2(inputPath: "../inputs/day7/input.txt")
         XCTAssertEqual(answer, 248_747_492)
     }
 }

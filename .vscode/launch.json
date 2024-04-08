@@ -19,6 +19,26 @@
       "name": "Release swift_aoc (2023/swift)",
       "program": "${workspaceFolder:advent-of-code}/2023/swift/.build/release/swift_aoc",
       "preLaunchTask": "swift: Build Release swift_aoc (2023/swift)"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:advent-of-code}/2023/day-8",
+      "name": "Debug day8 (2023/day-8)",
+      "program": "${workspaceFolder:advent-of-code}/2023/day-8/.build/debug/day8",
+      "preLaunchTask": "swift: Build Debug day8 (2023/day-8)"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:advent-of-code}/2023/day-8",
+      "name": "Release day8 (2023/day-8)",
+      "program": "${workspaceFolder:advent-of-code}/2023/day-8/.build/release/day8",
+      "preLaunchTask": "swift: Build Release day8 (2023/day-8)"
     }
   ]
 }

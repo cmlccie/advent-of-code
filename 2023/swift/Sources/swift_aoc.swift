@@ -6,7 +6,7 @@ import Logging
 struct SwiftAOC: ParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "Advent of Code 2023 - Swift",
-        subcommands: [Day7.self]
+        subcommands: [Day7.self, Day8.self]
     )
 
     struct StandardArgs: ParsableArguments {
