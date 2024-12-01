@@ -26,4 +26,4 @@ struct SwiftAOC: ParsableCommand {
     }
 }
 
-extension Logger.Level: EnumerableFlag {}
+extension Logger.Level: @retroactive EnumerableFlag {}
