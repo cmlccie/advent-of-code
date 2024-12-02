@@ -1,5 +1,5 @@
 # Advent of Code
 
-My first year working through the [Advent of Code](https://adventofcode.com/), and apparently I am already off to a late start. 🙃
+I plan to keep it _simple_ 🤞 this year and solve the challenges using a single language - Rust. 😎
 
-I hope to solve the challenges using Python and/or Rust, and have a good go of some holiday geeky fun. 🤓 🎄
+You can find my **2024** solutions in the [`./2024/rust/src`](2024/rust/src) directory.
