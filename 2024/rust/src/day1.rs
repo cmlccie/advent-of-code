@@ -96,7 +96,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day1/example.txt"),
-            solution("../data/day1/example-solution-part1.txt").unwrap()
+            solution("../data/day1/example-part1-answer.txt").unwrap()
         );
     }
 
@@ -104,7 +104,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day1/example.txt"),
-            solution("../data/day1/example-solution-part2.txt").unwrap()
+            solution("../data/day1/example-part2-answer.txt").unwrap()
         );
     }
 
@@ -112,7 +112,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day1/input.txt"),
-            solution("../data/day1/solution-part1.txt").unwrap()
+            solution("../data/day1/input-part1-answer.txt").unwrap()
         );
     }
 
@@ -120,7 +120,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day1/input.txt"),
-            solution("../data/day1/solution-part2.txt").unwrap()
+            solution("../data/day1/input-part2-answer.txt").unwrap()
         );
     }
 }
