@@ -16,7 +16,7 @@ fn parse_line(line: &str) -> Result<Vec<i64>> {
         return Err(anyhow!("Empty line"));
     }
 
-    line.split(" ")
+    line.split(' ')
         .map(|s| s.parse::<i64>().map_err(|e| e.into()))
         .collect()
 }
@@ -32,7 +32,7 @@ enum ReportStatus {
 }
 
 /*--------------------------------------------------------------------------------------
-Part 1
+  Part 1
 --------------------------------------------------------------------------------------*/
 
 fn report_all_increasing(report: &[i64]) -> bool {
@@ -139,7 +139,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day2/example.txt"),
-            solution("../data/day2/example-solution-part1.txt").unwrap()
+            solution("../data/day2/example-part1-answer.txt").unwrap()
         );
     }
 
@@ -147,7 +147,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day2/example.txt"),
-            solution("../data/day2/example-solution-part2.txt").unwrap()
+            solution("../data/day2/example-part2-answer.txt").unwrap()
         );
     }
 
@@ -155,7 +155,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day2/input.txt"),
-            solution("../data/day2/solution-part1.txt").unwrap()
+            solution("../data/day2/input-part1-answer.txt").unwrap()
         );
     }
 
@@ -163,7 +163,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day2/input.txt"),
-            solution("../data/day2/solution-part2.txt").unwrap()
+            solution("../data/day2/input-part2-answer.txt").unwrap()
         );
     }
 }
