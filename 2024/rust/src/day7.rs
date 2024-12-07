@@ -88,12 +88,10 @@ fn multiply(acc: Option<i64>, term: i64) -> i64 {
 }
 
 fn concatenate(acc: Option<i64>, term: i64) -> i64 {
-    let mut acc = match acc {
-        Some(x) => x.to_string(),
-        None => String::new(),
-    };
-    acc.push_str(&term.to_string());
-    acc.parse().unwrap()
+    match acc {
+        Some(acc) => (acc * 10u64.pow(term.ilog10() + 1) as i64) + term,
+        None => term,
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -121,7 +119,6 @@ mod tests {
         );
     }
 
-    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     #[test]
     fn test_part1_solution() {
         assert_eq!(
@@ -130,7 +127,6 @@ mod tests {
         );
     }
 
-    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     #[test]
     fn test_part2_solution() {
         assert_eq!(
