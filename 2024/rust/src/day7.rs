@@ -121,6 +121,7 @@ mod tests {
         );
     }
 
+    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     #[test]
     fn test_part1_solution() {
         assert_eq!(
@@ -129,6 +130,7 @@ mod tests {
         );
     }
 
+    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     #[test]
     fn test_part2_solution() {
         assert_eq!(

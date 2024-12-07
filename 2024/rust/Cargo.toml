@@ -3,6 +3,9 @@ name = "aoc24"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+slow_tests = []
+
 [dependencies]
 anyhow = "1.0.93"
 clap = { version = "4.5.21", features = ["derive"] }
