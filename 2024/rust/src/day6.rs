@@ -154,17 +154,14 @@ impl Guard {
     }
 
     fn next(&mut self, map: &Map) -> Action {
-        let space_in_front = map.project(&self.position, &self.direction);
-        if space_in_front.is_none() {
-            return Action::Exit;
-        }
+        let space_in_front = map
+            .project(&self.position, &self.direction)
+            .unwrap_or((map.rows, map.columns)); // Out of bounds
 
-        let space_in_front = space_in_front.unwrap();
-        let contents_of_space = map.get(space_in_front.0, space_in_front.1).unwrap();
-        if contents_of_space == '#' {
-            self.turn()
-        } else {
-            self.move_to(space_in_front)
+        match map.get(space_in_front.0, space_in_front.1) {
+            None => Action::Exit,
+            Some('#') => self.turn(),
+            Some(_) => self.move_to(space_in_front),
         }
     }
 
