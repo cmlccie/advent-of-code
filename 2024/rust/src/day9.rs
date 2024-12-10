@@ -2,8 +2,9 @@
   Day 9: Disk Fragmenter
 -------------------------------------------------------------------------------------------------*/
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::read_to_string;
-use std::io::prelude::*;
+// use std::io::prelude::*;
 use std::path::Path;
 
 /*--------------------------------------------------------------------------------------
@@ -11,10 +12,26 @@ use std::path::Path;
 --------------------------------------------------------------------------------------*/
 
 pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
-    let disk_map = parse_input_file(input);
-    let mut blocks = disk_map.blocks();
-    compact_file_fragments(&mut blocks);
-    compute_checksum(&blocks)
+    let mut disk = parse_input_file(input);
+    disk.compact_blocks();
+    disk.checksum() as i64
+}
+
+impl Disk {
+    fn compact_blocks(&mut self) {
+        loop {
+            let last_block_index = *self.blocks.last_key_value().unwrap().0;
+            let first_free_index = self.get_first_free_block_index();
+
+            // Exit if there are no more free blocks to the left of the last file block
+            if last_block_index < first_free_index {
+                break;
+            }
+
+            // Move the last file block to the first free block
+            self.move_file_block(last_block_index, first_free_index);
+        }
+    }
 }
 
 /*--------------------------------------------------------------------------------------
@@ -22,280 +39,215 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
 --------------------------------------------------------------------------------------*/
 
 pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
-    let disk_map = parse_input_file(input);
-    let mut blocks = disk_map.blocks();
-    compact_whole_files(&mut blocks);
-
-    println!("Allocations: {}\n", disk_map.allocations.len());
-    // print_disk_map(&disk_map.blocks());
-    print_disk_map(&blocks);
-
-    let checksum = compute_checksum(&blocks);
-
-    write_disk_to_file(&blocks, checksum);
-
-    checksum
+    let mut disk = parse_input_file(input);
+    disk.compact_files();
+    disk.checksum() as i64
 }
 
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
 
+impl Disk {
+    fn compact_files(&mut self) {
+        let last_file_id = *self.files.last_key_value().unwrap().0;
+
+        for file_id in (0..=last_file_id).rev() {
+            let free_index = {
+                let file = self.files.get(&file_id).unwrap();
+                self.find_free_range(file.length, file.lowest_index())
+            };
+
+            if let Some(free_index) = free_index {
+                self.move_file(file_id, free_index);
+                log::debug!("Moved file {} to index {}", file_id, free_index);
+            } else {
+                log::debug!(
+                    "Could not move file {}; no free range to left of file",
+                    file_id
+                );
+            }
+        }
+    }
+}
+
 /*-----------------------------------------------------------------------------
   Parse Input File
 -----------------------------------------------------------------------------*/
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> DiskMap {
+fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Disk {
     let file_contents = read_to_string(input).unwrap();
-    println!("File Contents: {}", file_contents.len());
-    println!(
-        "Line Length: {}",
-        file_contents.lines().next().unwrap().len()
-    );
+    let allocation_string = file_contents.lines().next().unwrap();
+    Disk::new(allocation_string)
+}
 
-    let block_count: usize = file_contents
-        .lines()
-        .next()
-        .unwrap()
-        .chars()
-        .map(|c| parse_digit(c) as usize)
-        .sum();
+/*-----------------------------------------------------------------------------
+  Disk
+-----------------------------------------------------------------------------*/
 
-    let mut allocations: Vec<Allocation> = Vec::new();
-    let mut file_id: FileId = 0;
-    let mut digits = file_contents
-        .lines()
-        .next()
-        .unwrap()
-        .chars()
-        .map(parse_digit);
-    while let Some(file_digit) = digits.next() {
-        allocations.push(Allocation::File(File::new(file_id, file_digit)));
-        file_id += 1;
+type FileId = u64;
+type BlockCount = u32;
+type BlockIndex = u64;
+type DiskCursor = BlockIndex;
 
-        if let Some(free_space_digit) = digits.next() {
-            allocations.push(Allocation::FreeSpace(free_space_digit));
+enum Allocation {
+    File(BlockCount),
+    FreeSpace(BlockCount),
+}
+
+struct Disk {
+    files: BTreeMap<FileId, File>,
+    blocks: BTreeMap<DiskCursor, FileId>,
+
+    first_free_block_cache: DiskCursor,
+}
+
+impl Disk {
+    fn new(dense_format: &str) -> Self {
+        let allocations: Vec<Allocation> = dense_format
+            .chars()
+            .map(|c| c.to_digit(10).unwrap())
+            .enumerate()
+            .map(|(index, digit)| {
+                if index % 2 == 0 {
+                    Allocation::File(digit)
+                } else {
+                    Allocation::FreeSpace(digit)
+                }
+            })
+            .collect();
+
+        let mut files: BTreeMap<FileId, File> = BTreeMap::new();
+        let mut blocks: BTreeMap<DiskCursor, FileId> = BTreeMap::new();
+        allocate_files(&allocations, &mut files, &mut blocks);
+
+        Self {
+            files,
+            blocks,
+
+            first_free_block_cache: 0,
         }
     }
 
-    DiskMap {
-        allocations,
-        block_count,
+    fn get_first_free_block_index(&mut self) -> BlockIndex {
+        while self.blocks.contains_key(&self.first_free_block_cache) {
+            self.first_free_block_cache += 1;
+        }
+        self.first_free_block_cache
     }
-}
 
-fn parse_digit(c: char) -> u8 {
-    match c {
-        '0' => 0,
-        '1' => 1,
-        '2' => 2,
-        '3' => 3,
-        '4' => 4,
-        '5' => 5,
-        '6' => 6,
-        '7' => 7,
-        '8' => 8,
-        '9' => 9,
-        _ => panic!("Invalid character in disk map"),
+    fn find_free_range(
+        &mut self,
+        length: BlockCount,
+        stop_index: BlockIndex,
+    ) -> Option<BlockIndex> {
+        let first_free_block = self.get_first_free_block_index();
+
+        for start_index in first_free_block..stop_index {
+            let range_is_free = (start_index..(start_index + length as BlockIndex))
+                .all(|index| !self.blocks.contains_key(&index));
+
+            if range_is_free {
+                return Some(start_index);
+            }
+        }
+
+        None
+    }
+
+    fn move_file_block(&mut self, from: BlockIndex, to: BlockIndex) {
+        assert!(!self.blocks.contains_key(&to)); // Verify destination block is free
+        let file_id = self.blocks.remove(&from).expect("File block exists");
+
+        // Update the file
+        self.files
+            .entry(file_id)
+            .and_modify(|file| file.move_block(from, to));
+
+        self.blocks.insert(to, file_id);
+    }
+
+    fn move_file(&mut self, file_id: FileId, to: BlockIndex) {
+        let file = self.files.get_mut(&file_id).expect("File exists");
+        let new_blocks = file
+            .blocks
+            .iter()
+            .zip(to..(to + file.length as BlockIndex))
+            .map(|(from, to)| {
+                assert!(!self.blocks.contains_key(&to)); // Destination must be free
+                let file_id = self.blocks.remove(from).expect("File block exists");
+                assert_eq!(file_id, file.id); // Source block must be from the file
+                self.blocks.insert(to, file_id);
+                to // Return the new block index
+            })
+            .collect();
+
+        file.blocks = new_blocks;
+    }
+
+    fn checksum(&self) -> u64 {
+        self.blocks
+            .iter()
+            .map(|(cursor, file_id)| *cursor * *file_id)
+            .sum()
     }
 }
 
 /*-----------------------------------------------------------------------------
-  Disk Map
+  File
 -----------------------------------------------------------------------------*/
-
-struct DiskMap {
-    allocations: Vec<Allocation>,
-    block_count: usize,
-}
-
-impl DiskMap {
-    fn blocks(&self) -> Vec<Block> {
-        let mut blocks: Vec<Block> = Vec::with_capacity(self.block_count);
-        for allocation in &self.allocations {
-            match allocation {
-                Allocation::File(file) => {
-                    for _ in 0..file.size {
-                        blocks.push(Some(file.id));
-                    }
-                }
-                Allocation::FreeSpace(size) => {
-                    for _ in 0..*size {
-                        blocks.push(None);
-                    }
-                }
-            }
-        }
-        blocks
-    }
-}
-
-enum Allocation {
-    File(File),
-    FreeSpace(u8),
-}
 
 struct File {
     id: FileId,
-    size: u8,
+    length: BlockCount,
+    blocks: BTreeSet<BlockIndex>,
 }
 
 impl File {
-    fn new(id: FileId, size: u8) -> Self {
-        Self { id, size }
+    fn new(id: FileId, length: BlockCount, cursor: BlockIndex) -> Self {
+        let blocks: BTreeSet<BlockIndex> = (cursor..(cursor + length as BlockIndex)).collect();
+        Self { id, length, blocks }
     }
-}
 
-type Block = Option<i64>;
-type FileId = i64;
+    fn lowest_index(&self) -> BlockIndex {
+        *self.blocks.first().unwrap()
+    }
 
-/*-----------------------------------------------------------------------------
-  Compact Files Fragments
------------------------------------------------------------------------------*/
-
-fn compact_file_fragments(blocks: &mut [Block]) {
-    let mut left_cursor: usize = 0;
-    let mut right_cursor: usize = blocks.len() - 1;
-
-    loop {
-        // Find left most empty block
-        while blocks[left_cursor].is_some() {
-            left_cursor += 1;
-        }
-
-        // Find right most populated block
-        while blocks[right_cursor].is_none() {
-            right_cursor -= 1;
-        }
-
-        if left_cursor >= right_cursor {
-            break;
-        }
-
-        blocks.swap(left_cursor, right_cursor);
+    fn move_block(&mut self, from: BlockIndex, to: BlockIndex) {
+        assert!(self.blocks.remove(&from)); // Source block should exist
+        self.blocks.insert(to);
     }
 }
 
 /*-----------------------------------------------------------------------------
-  Compact Whole Files
+  Allocate Files
 -----------------------------------------------------------------------------*/
 
-fn compact_whole_files(blocks: &mut [Block]) {
-    let mut cursor: usize = blocks.len() - 1;
-    let mut last_file_id: Option<FileId> = None;
+fn allocate_files(
+    allocations: &[Allocation],
+    files: &mut BTreeMap<FileId, File>,
+    blocks: &mut BTreeMap<DiskCursor, FileId>,
+) {
+    let mut file_id: FileId = 0;
+    let mut cursor: DiskCursor = 0;
 
-    loop {
-        let file = seek_file(blocks, &mut cursor, &mut last_file_id);
+    for allocation in allocations.iter() {
+        match allocation {
+            Allocation::File(length) => {
+                files.insert(file_id, File::new(file_id, *length, cursor));
+                let file = files.get(&file_id).unwrap();
+                for block in file.blocks.iter() {
+                    blocks.insert(*block, file.id);
+                }
 
-        if cursor == 0 {
-            break;
-        }
-
-        if file.is_none() {
-            println!("cursor: {}", cursor);
-            continue;
-        }
-
-        let (file_start, file_length) = file.unwrap();
-
-        let (left, right) = blocks.split_at_mut(file_start);
-
-        if left.len() < file_length {
-            continue;
-        }
-
-        // Search for free space
-        for free_space_cursor in 0..(left.len() - file_length) {
-            if left[free_space_cursor..(free_space_cursor + file_length)]
-                .iter()
-                .all(|block| block.is_none())
-            {
-                let free_slice = &mut left[free_space_cursor..(free_space_cursor + file_length)];
-                let file_slice = &mut right[..file_length];
-                free_slice.swap_with_slice(file_slice);
-                break;
+                file_id += 1;
+                cursor += *length as BlockIndex;
+            }
+            Allocation::FreeSpace(length) => {
+                cursor += *length as BlockIndex;
             }
         }
     }
-}
-
-type FileStart = usize;
-type FileLength = usize;
-
-fn seek_file(
-    blocks: &[Block],
-    cursor: &mut usize,
-    last_file_id: &mut Option<FileId>,
-) -> Option<(FileStart, FileLength)> {
-    while blocks[*cursor].is_none() && *cursor > 0 {
-        *cursor -= 1;
-    }
-    let file_end = *cursor;
-    let file_id = blocks[file_end];
-
-    while (blocks[*cursor] == file_id) && *cursor > 0 {
-        *cursor -= 1;
-    }
-
-    if last_file_id.is_some() && file_id.unwrap() >= last_file_id.unwrap() {
-        return None;
-    }
-
-    *last_file_id = file_id;
-
-    println!(
-        "file_id: {} last_file_id: {}",
-        file_id.unwrap(),
-        last_file_id.unwrap()
-    );
-
-    let file_start = *cursor + 1;
-    let file_length = file_end - file_start + 1;
-    Some((file_start, file_length))
-}
-
-/*-----------------------------------------------------------------------------
-  Print Disk Map
------------------------------------------------------------------------------*/
-
-fn print_disk_map(blocks: &[Block]) {
-    for block in blocks {
-        if let Some(block) = block {
-            print!("[{}]", block);
-        } else {
-            print!(".");
-        }
-    }
-}
-
-/*-----------------------------------------------------------------------------
-  Write Blocks to File
------------------------------------------------------------------------------*/
-
-fn write_disk_to_file(blocks: &[Block], checksum: i64) {
-    let mut file = std::fs::File::create("disk.txt").unwrap();
-    for block in blocks {
-        if let Some(block) = block {
-            file.write_all(format!("{}\n", block).as_bytes()).unwrap();
-        } else {
-            file.write_all(".\n".as_bytes()).unwrap();
-        }
-    }
-    file.write_all(format!("Checksum: {}", checksum).as_bytes())
-        .unwrap();
-}
-
-/*-----------------------------------------------------------------------------
-  Compute Checksum
------------------------------------------------------------------------------*/
-
-fn compute_checksum(blocks: &[Block]) -> i64 {
-    blocks
-        .iter()
-        .enumerate()
-        .filter(|(_, block)| block.is_some())
-        .map(|(i, file_id)| i as i64 * file_id.unwrap())
-        .sum()
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -331,11 +283,12 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_part2_solution() {
-    //     assert_eq!(
-    //         part2("../data/day9/input.txt"),
-    //         solution("../data/day9/input-part2-answer.txt").unwrap()
-    //     );
-    // }
+    #[test]
+    #[cfg_attr(not(feature = "slow_tests"), ignore)]
+    fn test_part2_solution() {
+        assert_eq!(
+            part2("../data/day9/input.txt"),
+            solution("../data/day9/input-part2-answer.txt").unwrap()
+        );
+    }
 }

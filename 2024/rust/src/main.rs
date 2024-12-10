@@ -18,6 +18,7 @@ mod day5;
 mod day6;
 mod day7;
 mod day8;
+mod day9;
 mod utils;
 
 /*--------------------------------------------------------------------------------------
@@ -49,6 +50,7 @@ enum Days {
     Day6,
     Day7,
     Day8,
+    Day9,
 }
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -115,6 +117,11 @@ fn main() {
         Days::Day8 => match args.part {
             Parts::Part1 => day8::part1(&args.input),
             Parts::Part2 => day8::part2(&args.input),
+        },
+
+        Days::Day9 => match args.part {
+            Parts::Part1 => day9::part1(&args.input),
+            Parts::Part2 => day9::part2(&args.input),
         },
     };
 
