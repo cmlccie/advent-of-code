@@ -11,6 +11,7 @@ use stderrlog::LogLevelNum;
 --------------------------------------------------------------------------------------*/
 
 mod day1;
+mod day10;
 mod day2;
 mod day3;
 mod day4;
@@ -51,6 +52,7 @@ enum Days {
     Day7,
     Day8,
     Day9,
+    Day10,
 }
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -122,6 +124,11 @@ fn main() {
         Days::Day9 => match args.part {
             Parts::Part1 => day9::part1(&args.input),
             Parts::Part2 => day9::part2(&args.input),
+        },
+
+        Days::Day10 => match args.part {
+            Parts::Part1 => day10::part1(&args.input),
+            Parts::Part2 => day10::part2(&args.input),
         },
     };
 
