@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use itertools::Itertools;
+use std::fmt::{Display, Formatter};
 
 /*-------------------------------------------------------------------------------------------------
   Map
@@ -9,6 +10,7 @@ pub type MapIndex = (usize, usize);
 pub type Coordinate = (isize, isize);
 pub type Offset = (isize, isize);
 
+#[derive(Debug)]
 pub struct Map<T> {
     map: Vec<Vec<T>>,
     rows: usize,
@@ -32,6 +34,22 @@ impl<T> Map<T> {
         MapIterator::new(self)
     }
 
+    pub fn contents(&self) -> &Vec<Vec<T>> {
+        &self.map
+    }
+
+    pub fn find<F>(&self, mut predicate: F) -> Option<MapIndex>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        for (row, column) in self.indices() {
+            if predicate(self.get((row, column)).unwrap()) {
+                return Some((row, column));
+            }
+        }
+        None
+    }
+
     /*-------------------------------------------------------------------------
       Methods for working with Indices
     -------------------------------------------------------------------------*/
@@ -52,6 +70,11 @@ impl<T> Map<T> {
         } else {
             None
         }
+    }
+
+    pub fn set(&mut self, index: MapIndex, value: T) {
+        let (row, column) = index;
+        self.map[row][column] = value;
     }
 
     pub fn indices(&self) -> impl Iterator<Item = MapIndex> {
@@ -196,6 +219,33 @@ impl From<&str> for Map<u8> {
                     .collect::<Vec<_>>()
             })
             .collect()
+    }
+}
+
+impl<T> From<Map<T>> for String
+where
+    T: Copy + Into<char>,
+{
+    fn from(map: Map<T>) -> String {
+        map.map
+            .iter()
+            .map(|row| row.iter().map(|&item| item.into()).collect::<String>())
+            .join("\n")
+    }
+}
+
+impl<T> Display for Map<T>
+where
+    T: Copy + Into<char>,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for row in &self.map {
+            for item in row {
+                write!(f, "{}", (*item).into())?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
 
