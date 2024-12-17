@@ -172,6 +172,28 @@ impl<T> Map<T> {
     }
 }
 
+impl Map<char> {
+    pub fn display_with_actor(&self, actor: char, index: MapIndex) -> String {
+        self.map
+            .iter()
+            .enumerate()
+            .map(|(row, columns)| {
+                columns
+                    .iter()
+                    .enumerate()
+                    .map(|(column, value)| {
+                        if (row, column) == index {
+                            actor
+                        } else {
+                            *value
+                        }
+                    })
+                    .collect::<String>()
+            })
+            .join("\n")
+    }
+}
+
 /*--------------------------------------------------------------------------------------
   Trait Implementations
 --------------------------------------------------------------------------------------*/
