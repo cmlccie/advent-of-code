@@ -9,17 +9,18 @@ use std::path::Path;
 
 const F64_TOLERANCE: f64 = 1e-4;
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let claw_machines = parse_input_file(input);
 
     claw_machines
         .iter()
         .filter_map(|claw_machine| claw_machine.solve())
         .map(|(a, b)| 3 * a + b)
-        .sum::<u64>() as i64
+        .sum::<u64>()
+        .to_string()
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let claw_machines = parse_input_file(input);
 
     let updated_measurements = claw_machines
@@ -35,7 +36,8 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         .iter()
         .filter_map(|claw_machine| claw_machine.solve())
         .map(|(a, b)| 3 * a + b)
-        .sum::<u64>() as i64
+        .sum::<u64>()
+        .to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -108,7 +110,7 @@ mod tests {
     fn test_example_part1() {
         assert_eq!(
             part1("../data/day13/example.txt"),
-            solution("../data/day13/example-part1-answer.txt").unwrap()
+            solution("../data/day13/example-part1-answer.txt")
         );
     }
 
@@ -116,7 +118,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day13/input.txt"),
-            solution("../data/day13/input-part1-answer.txt").unwrap()
+            solution("../data/day13/input-part1-answer.txt")
         );
     }
 
@@ -124,7 +126,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day13/input.txt"),
-            solution("../data/day13/input-part2-answer.txt").unwrap()
+            solution("../data/day13/input-part2-answer.txt")
         );
     }
 }

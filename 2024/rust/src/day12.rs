@@ -9,20 +9,20 @@ use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::path::Path;
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let map = parse_input_file(input);
     let mut regions = Regions::new(&map);
     regions.map_regions();
 
-    calculate_fencing_cost_part1(&regions) as i64
+    calculate_fencing_cost_part1(&regions).to_string()
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let map = parse_input_file(input);
     let mut regions = Regions::new(&map);
     regions.map_regions();
 
-    calculate_fencing_cost_part2(&regions) as i64
+    calculate_fencing_cost_part2(&regions).to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -269,7 +269,7 @@ mod tests {
     fn test_example2_part1() {
         assert_eq!(
             part1("../data/day12/example2.txt"),
-            solution("../data/day12/example2-part1-answer.txt").unwrap()
+            solution("../data/day12/example2-part1-answer.txt")
         );
     }
 
@@ -277,7 +277,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day12/input.txt"),
-            solution("../data/day12/input-part1-answer.txt").unwrap()
+            solution("../data/day12/input-part1-answer.txt")
         );
     }
 
@@ -285,7 +285,7 @@ mod tests {
     fn test_example2_part2() {
         assert_eq!(
             part2("../data/day12/example2.txt"),
-            solution("../data/day12/example2-part2-answer.txt").unwrap()
+            solution("../data/day12/example2-part2-answer.txt")
         );
     }
 
@@ -293,7 +293,7 @@ mod tests {
     fn test_example3_part2() {
         assert_eq!(
             part2("../data/day12/example3.txt"),
-            solution("../data/day12/example3-part2-answer.txt").unwrap()
+            solution("../data/day12/example3-part2-answer.txt")
         );
     }
 
@@ -301,7 +301,7 @@ mod tests {
     fn test_example4_part2() {
         assert_eq!(
             part2("../data/day12/example4.txt"),
-            solution("../data/day12/example4-part2-answer.txt").unwrap()
+            solution("../data/day12/example4-part2-answer.txt")
         );
     }
 
@@ -309,7 +309,7 @@ mod tests {
     fn test_example5_part2() {
         assert_eq!(
             part2("../data/day12/example5.txt"),
-            solution("../data/day12/example5-part2-answer.txt").unwrap()
+            solution("../data/day12/example5-part2-answer.txt")
         );
     }
 
@@ -317,7 +317,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day12/input.txt"),
-            solution("../data/day12/input-part2-answer.txt").unwrap()
+            solution("../data/day12/input-part2-answer.txt")
         );
     }
 }

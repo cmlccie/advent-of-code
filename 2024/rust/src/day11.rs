@@ -10,18 +10,18 @@ use std::path::Path;
   Part 1
 --------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let stones = parse_input_file(input);
-    blinks(&stones, 25) as i64
+    blinks(&stones, 25).to_string()
 }
 
 /*--------------------------------------------------------------------------------------
   Part 2
 --------------------------------------------------------------------------------------*/
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let stones = parse_input_file(input);
-    blinks(&stones, 75) as i64
+    blinks(&stones, 75).to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -135,7 +135,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day11/example.txt"),
-            solution("../data/day11/example-part1-answer.txt").unwrap()
+            solution("../data/day11/example-part1-answer.txt")
         );
     }
 
@@ -143,7 +143,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day11/input.txt"),
-            solution("../data/day11/input-part1-answer.txt").unwrap()
+            solution("../data/day11/input-part1-answer.txt")
         );
     }
 
@@ -151,7 +151,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day11/input.txt"),
-            solution("../data/day11/input-part2-answer.txt").unwrap()
+            solution("../data/day11/input-part2-answer.txt")
         );
     }
 }

@@ -11,7 +11,7 @@ use std::path::Path;
   Part 1
 --------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let map = parse_input_file(input);
 
     let anti_nodes: HashSet<Coordinate> = get_antenna_pairs(&map.antennas)
@@ -20,14 +20,14 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         .filter(|coordinate| filter_off_map_coordinates(&map, coordinate))
         .collect();
 
-    anti_nodes.len() as i64
+    anti_nodes.len().to_string()
 }
 
 /*--------------------------------------------------------------------------------------
   Part 2
 --------------------------------------------------------------------------------------*/
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let map = parse_input_file(input);
 
     let anti_nodes: HashSet<Coordinate> = get_antenna_pairs(&map.antennas)
@@ -36,7 +36,7 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         .filter(|coordinate| filter_off_map_coordinates(&map, coordinate))
         .collect();
 
-    anti_nodes.len() as i64
+    anti_nodes.len().to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day8/example.txt"),
-            solution("../data/day8/example-part1-answer.txt").unwrap()
+            solution("../data/day8/example-part1-answer.txt")
         );
     }
 
@@ -172,7 +172,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day8/example.txt"),
-            solution("../data/day8/example-part2-answer.txt").unwrap()
+            solution("../data/day8/example-part2-answer.txt")
         );
     }
 
@@ -180,7 +180,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day8/input.txt"),
-            solution("../data/day8/input-part1-answer.txt").unwrap()
+            solution("../data/day8/input-part1-answer.txt")
         );
     }
 
@@ -188,7 +188,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day8/input.txt"),
-            solution("../data/day8/input-part2-answer.txt").unwrap()
+            solution("../data/day8/input-part2-answer.txt")
         );
     }
 }

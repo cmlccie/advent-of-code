@@ -11,20 +11,20 @@ use std::path::Path;
   Part 1
 --------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let map = parse_input_file(input);
     let (_, peak_count) = map_trails(&map);
-    peak_count as i64
+    peak_count.to_string()
 }
 
 /*--------------------------------------------------------------------------------------
   Part 2
 --------------------------------------------------------------------------------------*/
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let map = parse_input_file(input);
     let (trail_count, _) = map_trails(&map);
-    trail_count as i64
+    trail_count.to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -248,7 +248,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day10/example.txt"),
-            solution("../data/day10/example-part1-answer.txt").unwrap()
+            solution("../data/day10/example-part1-answer.txt")
         );
     }
 
@@ -256,7 +256,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day10/example.txt"),
-            solution("../data/day10/example-part2-answer.txt").unwrap()
+            solution("../data/day10/example-part2-answer.txt")
         );
     }
 
@@ -264,7 +264,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day10/input.txt"),
-            solution("../data/day10/input-part1-answer.txt").unwrap()
+            solution("../data/day10/input-part1-answer.txt")
         );
     }
 
@@ -272,7 +272,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day10/input.txt"),
-            solution("../data/day10/input-part2-answer.txt").unwrap()
+            solution("../data/day10/input-part2-answer.txt")
         );
     }
 }

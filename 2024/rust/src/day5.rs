@@ -90,14 +90,15 @@ fn parse_input<P: AsRef<Path> + ?Sized>(input: &P) -> (OrderingRules, Vec<Update
   Part 1
 --------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let (ordering_rules, updates) = parse_input(input);
 
     updates
         .iter()
         .filter(|update| validate_page_order(&ordering_rules, update))
         .map(|update| update[update.len() / 2] as i64)
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*-----------------------------------------------------------------------------
@@ -113,14 +114,15 @@ fn validate_page_order(ordering_rules: &OrderingRules, update: &Updates) -> bool
   Part 2
 --------------------------------------------------------------------------------------*/
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let (ordering_rules, updates) = parse_input(input);
 
     updates
         .iter()
         .filter_map(|update| corrected_update(&ordering_rules, update))
         .map(|update| update[update.len() / 2] as i64)
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*-----------------------------------------------------------------------------
@@ -149,7 +151,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day5/example.txt"),
-            solution("../data/day5/example-part1-answer.txt").unwrap()
+            solution("../data/day5/example-part1-answer.txt")
         );
     }
 
@@ -157,7 +159,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day5/example.txt"),
-            solution("../data/day5/example-part2-answer.txt").unwrap()
+            solution("../data/day5/example-part2-answer.txt")
         );
     }
 
@@ -165,7 +167,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day5/input.txt"),
-            solution("../data/day5/input-part1-answer.txt").unwrap()
+            solution("../data/day5/input-part1-answer.txt")
         );
     }
 
@@ -173,7 +175,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day5/input.txt"),
-            solution("../data/day5/input-part2-answer.txt").unwrap()
+            solution("../data/day5/input-part2-answer.txt")
         );
     }
 }

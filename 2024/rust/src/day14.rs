@@ -7,7 +7,7 @@ use std::path::Path;
   Day 14: Restroom Redoubt
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let lobby = Lobby::new(101, 103);
     let mut robots = parse_input_file(input);
 
@@ -15,10 +15,10 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
     }
 
-    calculate_safety_factor(&robots, &lobby) as i64
+    calculate_safety_factor(&robots, &lobby).to_string()
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let lobby = Lobby::new(101, 103);
     let mut robots = parse_input_file(input);
 
@@ -36,7 +36,7 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
     }
 
-    first_christmas_tree as i64
+    first_christmas_tree.to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -203,7 +203,7 @@ mod tests {
     // fn test_example_part1() {
     //     assert_eq!(
     //         part1("../data/day14/example0.txt"),
-    //         solution("../data/day14/example0-part1-answer.txt").unwrap()
+    //         solution("../data/day14/example0-part1-answer.txt")
     //     );
     // }
 
@@ -211,7 +211,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day14/input.txt"),
-            solution("../data/day14/input-part1-answer.txt").unwrap()
+            solution("../data/day14/input-part1-answer.txt")
         );
     }
 
@@ -219,7 +219,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day14/input.txt"),
-            solution("../data/day14/input-part2-answer.txt").unwrap()
+            solution("../data/day14/input-part2-answer.txt")
         );
     }
 }

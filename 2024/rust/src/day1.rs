@@ -42,7 +42,7 @@ fn parse_file<P: AsRef<Path> + ?Sized>(file_path: &P) -> (Vec<i64>, Vec<i64>) {
   Part 1
 --------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let (mut left_list, mut right_list): (Vec<_>, Vec<_>) = parse_file(input);
 
     left_list.sort();
@@ -51,14 +51,15 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
     // Total difference between the two lists
     std::iter::zip(left_list.iter(), right_list.iter())
         .map(|(left, right)| (right - left).abs())
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*--------------------------------------------------------------------------------------
   Part 2
 --------------------------------------------------------------------------------------*/
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let (left_list, right_list): (Vec<_>, Vec<_>) = parse_file(input);
 
     // Calculate similarity score
@@ -71,7 +72,8 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
     left_list
         .iter()
         .map(|value| value * *right_list_id_count.get(value).unwrap_or(&0))
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -96,7 +98,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day1/example.txt"),
-            solution("../data/day1/example-part1-answer.txt").unwrap()
+            solution("../data/day1/example-part1-answer.txt")
         );
     }
 
@@ -104,7 +106,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day1/example.txt"),
-            solution("../data/day1/example-part2-answer.txt").unwrap()
+            solution("../data/day1/example-part2-answer.txt")
         );
     }
 
@@ -112,7 +114,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day1/input.txt"),
-            solution("../data/day1/input-part1-answer.txt").unwrap()
+            solution("../data/day1/input-part1-answer.txt")
         );
     }
 
@@ -120,7 +122,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day1/input.txt"),
-            solution("../data/day1/input-part2-answer.txt").unwrap()
+            solution("../data/day1/input-part2-answer.txt")
         );
     }
 }

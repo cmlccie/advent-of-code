@@ -116,7 +116,7 @@ impl Iterator for WordSearchIterator<'_> {
   Part 1
 --------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let word = Word::new("XMAS");
 
     let puzzle: Vec<Vec<char>> = read_to_string(input)
@@ -129,7 +129,8 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
     WordSearchIterator::new(&word_search)
         .filter(|(letter, _)| *letter == 'X')
         .map(|(_, start)| word_search.find_word(&start, &word))
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*-----------------------------------------------------------------------------
@@ -204,7 +205,7 @@ impl WordSearch {
   Part 2
 --------------------------------------------------------------------------------------*/
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let word = Xmas::new();
 
     let puzzle: Vec<Vec<char>> = read_to_string(input)
@@ -217,7 +218,8 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
     WordSearchIterator::new(&word_search)
         .filter(|(letter, _)| *letter == 'A')
         .filter_map(|(_, start)| word_search.find_x_mas(&start, &word))
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*-----------------------------------------------------------------------------
@@ -280,7 +282,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day4/example.txt"),
-            solution("../data/day4/example-part1-answer.txt").unwrap()
+            solution("../data/day4/example-part1-answer.txt")
         );
     }
 
@@ -288,7 +290,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day4/example.txt"),
-            solution("../data/day4/example-part2-answer.txt").unwrap()
+            solution("../data/day4/example-part2-answer.txt")
         );
     }
 
@@ -296,7 +298,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day4/input.txt"),
-            solution("../data/day4/input-part1-answer.txt").unwrap()
+            solution("../data/day4/input-part1-answer.txt")
         );
     }
 
@@ -304,7 +306,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day4/input.txt"),
-            solution("../data/day4/input-part2-answer.txt").unwrap()
+            solution("../data/day4/input-part2-answer.txt")
         );
     }
 }

@@ -7,7 +7,7 @@ use std::path::Path;
   Day 15: Warehouse Woes
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let (mut warehouse, directions) = parse_input_file(input);
 
     let robot_starting_position = warehouse
@@ -20,10 +20,10 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         robot.attempt_move(&mut warehouse, direction);
     }
 
-    calculate_gps_coordinates_sum(&warehouse) as i64
+    calculate_gps_coordinates_sum(&warehouse).to_string()
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     let (warehouse, directions) = parse_input_file(input);
     let mut warehouse = modify_warehouse(&warehouse);
     log::debug!("Starting Warehouse:\n{}", warehouse);
@@ -39,7 +39,7 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
         log::debug!("Direction: {}\n{}", direction, warehouse);
     }
 
-    calculate_gps_coordinates_sum(&warehouse) as i64
+    calculate_gps_coordinates_sum(&warehouse).to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -375,7 +375,7 @@ mod tests {
     fn test_example_part1() {
         assert_eq!(
             part1("../data/day15/example0.txt"),
-            solution("../data/day15/example0-part1-answer.txt").unwrap()
+            solution("../data/day15/example0-part1-answer.txt")
         );
     }
 
@@ -383,7 +383,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day15/input.txt"),
-            solution("../data/day15/input-part1-answer.txt").unwrap()
+            solution("../data/day15/input-part1-answer.txt")
         );
     }
 
@@ -391,7 +391,7 @@ mod tests {
     fn test_example_part2() {
         assert_eq!(
             part2("../data/day15/example0.txt"),
-            solution("../data/day15/example0-part2-answer.txt").unwrap()
+            solution("../data/day15/example0-part2-answer.txt")
         );
     }
 
@@ -399,7 +399,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day15/input.txt"),
-            solution("../data/day15/input-part2-answer.txt").unwrap()
+            solution("../data/day15/input-part2-answer.txt")
         );
     }
 }

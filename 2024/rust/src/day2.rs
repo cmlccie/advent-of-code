@@ -60,7 +60,7 @@ fn report_status(report: &[i64]) -> ReportStatus {
     }
 }
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     read_to_string(input)
         .unwrap()
         .lines()
@@ -72,7 +72,8 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
             ReportStatus::Safe => 1,
             ReportStatus::Unsafe => 0,
         })
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -97,7 +98,7 @@ fn report_status_with_problem_dampener(report: &[i64]) -> ReportStatus {
     ReportStatus::Unsafe
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     read_to_string(input)
         .unwrap()
         .lines()
@@ -109,7 +110,8 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> i64 {
             ReportStatus::Safe => 1,
             ReportStatus::Unsafe => 0,
         })
-        .sum()
+        .sum::<i64>()
+        .to_string()
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -139,7 +141,7 @@ mod tests {
     fn test_example_solution_part1() {
         assert_eq!(
             part1("../data/day2/example.txt"),
-            solution("../data/day2/example-part1-answer.txt").unwrap()
+            solution("../data/day2/example-part1-answer.txt")
         );
     }
 
@@ -147,7 +149,7 @@ mod tests {
     fn test_example_solution_part2() {
         assert_eq!(
             part2("../data/day2/example.txt"),
-            solution("../data/day2/example-part2-answer.txt").unwrap()
+            solution("../data/day2/example-part2-answer.txt")
         );
     }
 
@@ -155,7 +157,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day2/input.txt"),
-            solution("../data/day2/input-part1-answer.txt").unwrap()
+            solution("../data/day2/input-part1-answer.txt")
         );
     }
 
@@ -163,7 +165,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day2/input.txt"),
-            solution("../data/day2/input-part2-answer.txt").unwrap()
+            solution("../data/day2/input-part2-answer.txt")
         );
     }
 }
