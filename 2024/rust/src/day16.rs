@@ -1,10 +1,12 @@
-use crate::shared::map::{Map, MapIndex, Offset};
-use std::collections::{HashMap, HashSet};
+use crate::shared::map::{Direction4C, Map, MapIndex};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fs::read_to_string;
+use std::iter::once;
 use std::path::Path;
 
 /*-------------------------------------------------------------------------------------------------
-  Day 16: Reindeer Maze
+  Day 16: Reindeer map
 -------------------------------------------------------------------------------------------------*/
 
 pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
@@ -30,187 +32,138 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map<char> {
     read_to_string(input).unwrap().as_str().into()
 }
 
+// Use Dijkstra's algorithm to find the shortest paths from the start to the goal
 fn race(map: &Map<char>) -> (Score, TileCount) {
     let start = map.find(|&c| c == 'S').unwrap();
-    let finish = map.find(|&c| c == 'E').unwrap();
-    let reindeer = Reindeer::new(start, Direction::East);
+    let goal = map.find(|&c| c == 'E').unwrap();
+
+    let mut dist: HashMap<(MapIndex, Direction4C), Score> = HashMap::new();
+    let mut prev: HashMap<(MapIndex, Direction4C), HashSet<(MapIndex, Direction4C)>> =
+        HashMap::new();
+    let mut heap: BinaryHeap<State> = BinaryHeap::new();
 
     let mut best_score: Score = Score::MAX;
-    let mut best_score_to_reach_tile: HashMap<MapIndex, Score> = HashMap::new();
 
-    let mut best_path_tiles: HashSet<MapIndex> = HashSet::new();
+    let initial_state = State {
+        position: start,
+        direction: Direction4C::East,
+        score: 0,
+    };
+    let initial_key = (initial_state.position, initial_state.direction);
+    dist.insert(initial_key, initial_state.score);
+    prev.insert(initial_key, HashSet::new());
 
-    let mut stack = vec![reindeer];
-    while let Some(reindeer) = stack.pop() {
-        // Prune reindeer that can't beat the best score
-        if reindeer.score > best_score {
+    heap.push(initial_state);
+    while let Some(current_state) = heap.pop() {
+        let current_key = (current_state.position, current_state.direction);
+        let current_tile_score = *dist.get(&current_key).unwrap_or(&Score::MAX);
+
+        if current_state.position == goal && current_state.score < best_score {
+            best_score = current_state.score;
             continue;
         }
 
-        // Prune reindeer that have looped into their own path
-        if reindeer.visited.contains(&reindeer.position) {
+        if current_state.score > current_tile_score || current_state.score >= best_score {
             continue;
-        };
+        }
 
-        // Prune reindeer the will have a higher score leaving the current tile
-        if let Some(&score) = best_score_to_reach_tile.get(&reindeer.position) {
-            if reindeer.score > (score + 1000) {
-                continue;
-            }
-        };
-        best_score_to_reach_tile.insert(reindeer.position, reindeer.score);
+        for next_state in current_state.next_states(map).iter().filter_map(|s| *s) {
+            let next_key = (next_state.position, next_state.direction);
+            let next_tile_score = dist.get(&next_key).unwrap_or(&Score::MAX);
 
-        if reindeer.finished(map) {
-            match reindeer.score.cmp(&best_score) {
-                std::cmp::Ordering::Less => {
-                    best_score = reindeer.score;
-                    best_path_tiles = reindeer.visited;
+            match next_state.score.cmp(next_tile_score) {
+                Ordering::Less => {
+                    dist.insert(next_key, next_state.score);
+                    prev.insert(next_key, once(current_key).collect());
+                    heap.push(next_state);
                 }
-                std::cmp::Ordering::Equal => {
-                    best_path_tiles = best_path_tiles.union(&reindeer.visited).copied().collect();
+                Ordering::Equal => {
+                    prev.entry(next_key).or_default().insert(current_key);
+                    heap.push(next_state);
                 }
                 _ => {}
             }
-            continue;
-        };
-
-        let actions = reindeer.available_actions(map);
-
-        // Prune reindeer that can't move forward or turn left or right
-        if actions.iter().all(Option::is_none) {
-            continue;
-        };
-
-        actions
-            .iter()
-            .filter_map(|action| *action)
-            .for_each(|action| {
-                stack.push(reindeer.fork(action, map));
-            });
-    }
-
-    best_path_tiles.insert(finish);
-
-    (best_score, best_path_tiles.len() as TileCount)
-}
-
-/*-----------------------------------------------------------------------------
-  Reindeer
------------------------------------------------------------------------------*/
-
-#[derive(Debug, Clone)]
-struct Reindeer {
-    position: MapIndex,
-    direction: Direction,
-    visited: HashSet<MapIndex>,
-    score: u64,
-}
-
-impl Reindeer {
-    fn new(position: MapIndex, direction: Direction) -> Self {
-        Self {
-            position,
-            direction,
-            visited: HashSet::new(),
-            score: 0,
         }
     }
 
-    fn finished(&self, map: &Map<char>) -> bool {
-        map.get(self.position) == Some(&'E')
-    }
-
-    fn fork(&self, action: ReindeerAction, map: &Map<char>) -> Self {
-        let mut reindeer = self.clone();
-        reindeer.visited.insert(reindeer.position);
-
-        match action {
-            ReindeerAction::MoveForward => reindeer.move_forward(map),
-            ReindeerAction::Turn(direction) => {
-                reindeer.turn(direction);
-                reindeer.move_forward(map)
+    let mut tiles: HashSet<MapIndex> = HashSet::new();
+    let mut stack = vec![
+        (goal, Direction4C::North),
+        (goal, Direction4C::South),
+        (goal, Direction4C::East),
+        (goal, Direction4C::West),
+    ];
+    while let Some(current) = stack.pop() {
+        if let Some(prevs) = prev.get(&current) {
+            tiles.insert(current.0);
+            for prev in prevs {
+                stack.push(*prev);
             }
-        };
-
-        reindeer
+        }
     }
+    log::debug!("Best Paths:\n{}", map.display_with_overlay('O', &tiles));
 
-    fn available_actions(&self, map: &Map<char>) -> [Option<ReindeerAction>; 3] {
-        let forward = self.direction;
-        let left = self.direction.turn_counterclockwise();
-        let right = self.direction.turn_clockwise();
+    (best_score, tiles.len() as TileCount)
+}
+
+/*-----------------------------------------------------------------------------
+  State
+-----------------------------------------------------------------------------*/
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct State {
+    position: MapIndex,
+    direction: Direction4C,
+    score: Score,
+}
+
+impl State {
+    fn next_states(&self, map: &Map<char>) -> [Option<Self>; 3] {
         [
-            self.direction_is_clear(map, left)
-                .then_some(ReindeerAction::Turn(left)),
-            self.direction_is_clear(map, forward)
-                .then_some(ReindeerAction::MoveForward),
-            self.direction_is_clear(map, right)
-                .then_some(ReindeerAction::Turn(right)),
+            self.direction_is_clear(map, self.direction)
+                .then_some(State {
+                    position: map
+                        .project_index_direction(self.position, self.direction)
+                        .unwrap(),
+                    direction: self.direction,
+                    score: self.score + 1,
+                }),
+            self.direction_is_clear(map, self.direction.turn_right())
+                .then_some(State {
+                    position: self.position,
+                    direction: self.direction.turn_right(),
+                    score: self.score + 1000,
+                }),
+            self.direction_is_clear(map, self.direction.turn_left())
+                .then_some(State {
+                    position: self.position,
+                    direction: self.direction.turn_left(),
+                    score: self.score + 1000,
+                }),
         ]
     }
 
-    fn direction_is_clear(&self, map: &Map<char>, direction: Direction) -> bool {
-        let offset = direction.offset();
-        let new_position = map.project_index_offset(self.position, offset).unwrap();
+    fn direction_is_clear(&self, map: &Map<char>, direction: Direction4C) -> bool {
+        let new_position = map
+            .project_index_direction(self.position, direction)
+            .unwrap();
         map.get(new_position) != Some(&'#')
     }
+}
 
-    fn move_forward(&mut self, map: &Map<char>) {
-        let offset = self.direction.offset();
-        self.position = map.project_index_offset(self.position, offset).unwrap();
-        self.score += 1;
-    }
-
-    fn turn(&mut self, direction: Direction) {
-        self.direction = direction;
-        self.score += 1000;
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse ordering to make the heap a min-heap
+        other
+            .score
+            .cmp(&self.score)
+            .then_with(|| self.position.cmp(&other.position))
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum ReindeerAction {
-    MoveForward,
-    Turn(Direction),
-}
-
-/*-----------------------------------------------------------------------------
-  Direction
------------------------------------------------------------------------------*/
-
-#[derive(Debug, Clone, Copy)]
-enum Direction {
-    North,
-    East,
-    South,
-    West,
-}
-
-impl Direction {
-    fn offset(&self) -> Offset {
-        match self {
-            Direction::North => (-1, 0),
-            Direction::South => (1, 0),
-            Direction::East => (0, 1),
-            Direction::West => (0, -1),
-        }
-    }
-
-    fn turn_counterclockwise(&self) -> Self {
-        match self {
-            Direction::North => Direction::West,
-            Direction::West => Direction::South,
-            Direction::South => Direction::East,
-            Direction::East => Direction::North,
-        }
-    }
-
-    fn turn_clockwise(&self) -> Self {
-        match self {
-            Direction::North => Direction::East,
-            Direction::East => Direction::South,
-            Direction::South => Direction::West,
-            Direction::West => Direction::North,
-        }
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -240,7 +193,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day16/input.txt"),
@@ -265,7 +217,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day16/input.txt"),

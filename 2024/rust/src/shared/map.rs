@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use itertools::Itertools;
+use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 
 /*-------------------------------------------------------------------------------------------------
@@ -89,6 +90,15 @@ impl<T> Map<T> {
         )
     }
 
+    pub fn project_index_direction<D: Direction>(
+        &self,
+        index: MapIndex,
+        direction: D,
+    ) -> Option<MapIndex> {
+        let offset = direction.offset();
+        self.project_index_offset(index, offset)
+    }
+
     pub fn project_index_offset(&self, index: MapIndex, offset: Offset) -> Option<MapIndex> {
         let (row, column) = index;
         let (row_offset, column_offset) = offset;
@@ -146,6 +156,15 @@ impl<T> Map<T> {
         }
     }
 
+    pub fn project_coordinate_direction<D: Direction>(
+        &self,
+        coordinate: Coordinate,
+        direction: D,
+    ) -> Coordinate {
+        let offset = direction.offset();
+        self.project_coordinate_offset(coordinate, offset)
+    }
+
     pub fn project_coordinate_offset(&self, coordinate: Coordinate, offset: Offset) -> Coordinate {
         let (row, column) = coordinate;
         let (row_offset, column_offset) = offset;
@@ -184,6 +203,26 @@ impl Map<char> {
                     .map(|(column, value)| {
                         if (row, column) == index {
                             actor
+                        } else {
+                            *value
+                        }
+                    })
+                    .collect::<String>()
+            })
+            .join("\n")
+    }
+
+    pub fn display_with_overlay(&self, overlay: char, indices: &HashSet<MapIndex>) -> String {
+        self.map
+            .iter()
+            .enumerate()
+            .map(|(row, columns)| {
+                columns
+                    .iter()
+                    .enumerate()
+                    .map(|(column, value)| {
+                        if indices.contains(&(row, column)) {
+                            overlay
                         } else {
                             *value
                         }
@@ -305,5 +344,56 @@ impl<'m, T> Iterator for MapIterator<'m, T> {
         };
 
         Some(next_value)
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  Direction
+-------------------------------------------------------------------------------------------------*/
+
+pub trait Direction {
+    fn offset(&self) -> Offset;
+}
+
+/*--------------------------------------------------------------------------------------
+  Four-Direction Compass
+--------------------------------------------------------------------------------------*/
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction4C {
+    North,
+    East,
+    South,
+    West,
+}
+
+impl Direction for Direction4C {
+    fn offset(&self) -> Offset {
+        match self {
+            Direction4C::North => (-1, 0),
+            Direction4C::South => (1, 0),
+            Direction4C::East => (0, 1),
+            Direction4C::West => (0, -1),
+        }
+    }
+}
+
+impl Direction4C {
+    pub fn turn_left(&self) -> Self {
+        match self {
+            Direction4C::North => Direction4C::West,
+            Direction4C::West => Direction4C::South,
+            Direction4C::South => Direction4C::East,
+            Direction4C::East => Direction4C::North,
+        }
+    }
+
+    pub fn turn_right(&self) -> Self {
+        match self {
+            Direction4C::North => Direction4C::East,
+            Direction4C::East => Direction4C::South,
+            Direction4C::South => Direction4C::West,
+            Direction4C::West => Direction4C::North,
+        }
     }
 }
