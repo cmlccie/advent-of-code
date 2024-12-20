@@ -2,6 +2,7 @@
 use itertools::Itertools;
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
+use strum::EnumIter;
 
 /*-------------------------------------------------------------------------------------------------
   Map
@@ -359,7 +360,7 @@ pub trait Direction {
   Four-Direction Compass
 --------------------------------------------------------------------------------------*/
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
 pub enum Direction4C {
     North,
     East,
