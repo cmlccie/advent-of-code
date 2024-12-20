@@ -19,6 +19,7 @@ mod day14;
 mod day15;
 mod day16;
 mod day17;
+mod day18;
 mod day2;
 mod day20;
 mod day3;
@@ -69,6 +70,7 @@ enum Days {
     Day15,
     Day16,
     Day17,
+    Day18,
     Day20,
 }
 
@@ -181,6 +183,11 @@ fn main() {
         Days::Day17 => match args.part {
             Parts::Part1 => day17::part1(&args.input),
             Parts::Part2 => day17::part2(&args.input),
+        },
+
+        Days::Day18 => match args.part {
+            Parts::Part1 => day18::part1(&args.input),
+            Parts::Part2 => day18::part2(&args.input),
         },
 
         Days::Day20 => match args.part {

@@ -20,6 +20,14 @@ pub struct Map<T> {
 }
 
 impl<T> Map<T> {
+    pub fn new(rows: usize, columns: usize, default: T) -> Self
+    where
+        T: Clone,
+    {
+        let map = vec![vec![default; columns]; rows];
+        Self { map, rows, columns }
+    }
+
     pub fn rows(&self) -> usize {
         self.rows
     }
