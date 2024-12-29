@@ -67,8 +67,6 @@ fn find_maximum_bananas(secrets: Secrets) -> Answer {
             secret = evolve_secret(secret);
         }
 
-        log::debug!("Prices: {:?}", prices[0..10].to_vec());
-
         // Identify how many bananas can be bought for each sequence of 4 price changes
         for window in prices.windows(5) {
             let sequence: Sequence = [
@@ -83,11 +81,6 @@ fn find_maximum_bananas(secrets: Secrets) -> Answer {
             if !seller_sequences.contains(&sequence) {
                 let bananas = bananas_by_sequence.entry(sequence).or_insert(0);
                 *bananas += window[4] as Answer;
-
-                if sequence == [-2, 1, -1, 3] {
-                    log::debug!("Seller sequence {sequence:?} buys {} bananas", window[4]);
-                };
-
                 seller_sequences.insert(sequence);
             }
         }
