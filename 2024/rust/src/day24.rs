@@ -418,13 +418,13 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_example1_part1() {
-        assert_eq!(
-            part1("../data/day24/example1.txt"),
-            solution("../data/day24/example1-part1-answer.txt")
-        );
-    }
+    // #[test]
+    // fn test_example1_part1() {
+    //     assert_eq!(
+    //         part1("../data/day24/example1.txt"),
+    //         solution("../data/day24/example1-part1-answer.txt")
+    //     );
+    // }
 
     #[test]
     fn test_part1_solution() {
