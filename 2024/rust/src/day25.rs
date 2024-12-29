@@ -40,7 +40,6 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Locks, Keys) {
     let mut keys = Vec::new();
 
     let mut lines = input.lines().peekable();
-    let (lock, key) = (false, false);
 
     while lines.peek().is_some() {
         let first_line = lines.next().unwrap();
