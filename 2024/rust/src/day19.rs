@@ -1,3 +1,4 @@
+use cached::proc_macro::cached;
 use regex::Regex;
 use std::fs::read_to_string;
 use std::path::Path;
@@ -19,8 +20,14 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     possible_designs_count.to_string()
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(_input: &P) -> String {
-    unimplemented!()
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+    let (patterns, designs) = parse_input_file(input);
+
+    designs
+        .into_iter()
+        .map(|design| count_ways_to_make_design(design, patterns.clone()))
+        .sum::<DesignCount>()
+        .to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -31,6 +38,7 @@ type Pattern = String;
 type Patterns = Vec<Pattern>;
 type Design = String;
 type Designs = Vec<Design>;
+type DesignCount = u64;
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Patterns, Designs) {
     let input = read_to_string(input).unwrap();
@@ -46,6 +54,26 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Patterns, Designs) {
     let designs = input.lines().skip(2).map(|s| s.to_string()).collect();
 
     (patterns, designs)
+}
+
+#[cached]
+fn count_ways_to_make_design(design: String, patterns: Patterns) -> DesignCount {
+    // Base case
+    if design.is_empty() {
+        return 1;
+    };
+
+    // Recursive cases
+    patterns
+        .iter()
+        .map(|pattern| {
+            if design.starts_with(pattern) {
+                count_ways_to_make_design(design[pattern.len()..].to_string(), patterns.clone())
+            } else {
+                0
+            }
+        })
+        .sum()
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -65,19 +93,20 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_part1_solution() {
-    //     assert_eq!(
-    //         part1("../data/day19/input.txt"),
-    //         solution("../data/day19/input-part1-answer.txt")
-    //     );
-    // }
+    #[test]
+    fn test_part1_solution() {
+        assert_eq!(
+            part1("../data/day19/input.txt"),
+            solution("../data/day19/input-part1-answer.txt")
+        );
+    }
 
-    // #[test]
-    // fn test_part2_solution() {
-    //     assert_eq!(
-    //         part2("../data/day19/input.txt"),
-    //         solution("../data/day19/input-part2-answer.txt")
-    //     );
-    // }
+    #[test]
+    #[cfg_attr(not(feature = "slow_tests"), ignore)]
+    fn test_part2_solution() {
+        assert_eq!(
+            part2("../data/day19/input.txt"),
+            solution("../data/day19/input-part2-answer.txt")
+        );
+    }
 }
