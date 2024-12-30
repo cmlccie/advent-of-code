@@ -1,6 +1,8 @@
+use cached::proc_macro::cached;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::Path;
+use std::sync::OnceLock;
 
 /*-------------------------------------------------------------------------------------------------
   Day 21: Keypad Conundrum
@@ -16,13 +18,36 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     codes
         .iter()
         .map(|code| (code, dpad2.enter_code(code)))
-        .map(|(code, moves)| calculate_complexity(code, &moves))
+        .map(|(code, moves)| calculate_complexity(code, moves.len()))
         .sum::<Complexity>()
         .to_string()
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(_input: &P) -> String {
-    unimplemented!()
+pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+    let codes = parse_input_file(input);
+
+    let mut previous_keypad = None;
+    for n in (0..25).rev() {
+        previous_keypad = Some(Box::new(Keypad::new(
+            KeypadType::DPad,
+            format!("Robot{n}").as_str(),
+            previous_keypad,
+        )));
+    }
+
+    let mut final_keypad = Box::new(Keypad::new(KeypadType::NumPad, "Robot", previous_keypad));
+
+    codes
+        .iter()
+        .map(|code| {
+            let move_count: MoveCount = code
+                .chars()
+                .map(|button| final_keypad.count_moves(button))
+                .sum();
+            calculate_complexity(code, move_count)
+        })
+        .sum::<Complexity>()
+        .to_string()
 }
 
 /*--------------------------------------------------------------------------------------
@@ -30,8 +55,12 @@ pub fn part2<P: AsRef<Path> + ?Sized>(_input: &P) -> String {
 --------------------------------------------------------------------------------------*/
 
 type Code = String;
+type Button = char;
 type Position = (isize, isize);
+type Keys = HashMap<Button, Position>;
+type Moves = Vec<Move>;
 type Complexity = usize;
+type MoveCount = Complexity;
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Code> {
     read_to_string(input)
@@ -45,7 +74,7 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Code> {
   Keypad
 -----------------------------------------------------------------------------*/
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum KeypadType {
     NumPad,
     DPad,
@@ -57,59 +86,62 @@ struct Keypad {
     keypad: KeypadType,
     name: String,
     connected: Option<Box<Keypad>>,
-    keys: HashMap<char, Position>,
-    position: Position,
+    robot_pointing_at: Button,
+
+    move_count_cache: HashMap<(Button, Button), MoveCount>,
+}
+
+static NUMERIC_KEYS: OnceLock<Keys> = OnceLock::new();
+fn numeric_keys() -> &'static Keys {
+    NUMERIC_KEYS.get_or_init(|| {
+        [
+            ('7', (0, 0)),
+            ('8', (0, 1)),
+            ('9', (0, 2)),
+            ('4', (1, 0)),
+            ('5', (1, 1)),
+            ('6', (1, 2)),
+            ('1', (2, 0)),
+            ('2', (2, 1)),
+            ('3', (2, 2)),
+            ('X', (3, 0)),
+            ('0', (3, 1)),
+            ('A', (3, 2)),
+        ]
+        .into_iter()
+        .collect()
+    })
+}
+
+static DPAD_KEYS: OnceLock<Keys> = OnceLock::new();
+fn dpad_keys() -> &'static Keys {
+    DPAD_KEYS.get_or_init(|| {
+        [
+            ('X', (0, 0)),
+            ('^', (0, 1)),
+            ('A', (0, 2)),
+            ('<', (1, 0)),
+            ('v', (1, 1)),
+            ('>', (1, 2)),
+        ]
+        .into_iter()
+        .collect()
+    })
 }
 
 impl Keypad {
     fn new(keypad: KeypadType, name: &str, connected: Option<Box<Keypad>>) -> Self {
-        match keypad {
-            KeypadType::NumPad => assert!(connected.is_none()),
-            KeypadType::DPad => assert!(connected.is_some()),
-        }
-
-        let keys: HashMap<char, Position> = match keypad {
-            KeypadType::NumPad => [
-                ('7', (0, 0)),
-                ('8', (0, 1)),
-                ('9', (0, 2)),
-                ('4', (1, 0)),
-                ('5', (1, 1)),
-                ('6', (1, 2)),
-                ('1', (2, 0)),
-                ('2', (2, 1)),
-                ('3', (2, 2)),
-                ('X', (3, 0)),
-                ('0', (3, 1)),
-                ('A', (3, 2)),
-            ]
-            .into_iter()
-            .collect(),
-            KeypadType::DPad => [
-                ('X', (0, 0)),
-                ('^', (0, 1)),
-                ('A', (0, 2)),
-                ('<', (1, 0)),
-                ('v', (1, 1)),
-                ('>', (1, 2)),
-            ]
-            .into_iter()
-            .collect(),
-        };
-
-        let activate_key = *keys.get(&'A').unwrap();
-
         Keypad {
             keypad,
             name: name.to_string(),
             connected,
-            keys,
-            position: activate_key,
+            robot_pointing_at: 'A',
+            move_count_cache: HashMap::new(),
         }
     }
 
-    fn enter_code(&mut self, code: &Code) -> Vec<Move> {
-        let moves: Vec<Move> = match self.keypad {
+    fn enter_code(&mut self, code: &Code) -> Moves {
+        let moves: Moves = match self.keypad {
             KeypadType::NumPad => code.chars().flat_map(|c| self.move_to(c)).collect(),
             KeypadType::DPad => self
                 .connected
@@ -131,60 +163,46 @@ impl Keypad {
         moves
     }
 
-    fn move_to(&mut self, to: char) -> Vec<Move> {
-        let target = *self.keys.get(&to).unwrap();
-        match self.keypad {
-            KeypadType::NumPad => self.numpad_select(target),
-            KeypadType::DPad => self.dpad_select(target),
-        }
-    }
+    fn move_to(&mut self, to: Button) -> Moves {
+        let moves = match self.keypad {
+            KeypadType::NumPad => numeric_moves(self.robot_pointing_at, to),
+            KeypadType::DPad => dpad_moves(self.robot_pointing_at, to),
+        };
 
-    fn dpad_select(&mut self, target: Position) -> Vec<Move> {
-        let mut moves = Vec::new();
-
-        while self.position != target {
-            // Move right before moving up; Move down before moving left
-            if self.position.1 < target.1 {
-                moves.push(Move::Right);
-                self.position.1 += 1;
-            } else if self.position.0 > target.0 {
-                moves.push(Move::Up);
-                self.position.0 -= 1;
-            } else if self.position.0 < target.0 {
-                moves.push(Move::Down);
-                self.position.0 += 1;
-            } else if self.position.1 > target.1 {
-                moves.push(Move::Left);
-                self.position.1 -= 1;
-            }
-        }
-        moves.push(Move::Activate);
+        self.robot_pointing_at = to;
 
         moves
     }
 
-    fn numpad_select(&mut self, target: Position) -> Vec<Move> {
-        let mut moves = Vec::new();
-
-        while self.position != target {
-            // Move right before moving down; Move up before moving left
-            if self.position.1 < target.1 {
-                moves.push(Move::Right);
-                self.position.1 += 1;
-            } else if self.position.0 < target.0 {
-                moves.push(Move::Down);
-                self.position.0 += 1;
-            } else if self.position.0 > target.0 {
-                moves.push(Move::Up);
-                self.position.0 -= 1;
-            } else if self.position.1 > target.1 {
-                moves.push(Move::Left);
-                self.position.1 -= 1;
-            }
+    fn count_moves(&mut self, to: Button) -> MoveCount {
+        // Check cache
+        if let Some(&count) = self.move_count_cache.get(&(self.robot_pointing_at, to)) {
+            self.robot_pointing_at = to;
+            return count;
         }
-        moves.push(Move::Activate);
 
-        moves
+        // Moves needed at this keypad
+        let moves = match self.keypad {
+            KeypadType::NumPad => numeric_moves(self.robot_pointing_at, to),
+            KeypadType::DPad => dpad_moves(self.robot_pointing_at, to),
+        };
+
+        // Base case
+        let move_count = if self.connected.is_none() {
+            moves.len()
+        } else {
+            moves
+                .into_iter()
+                .map(Button::from)
+                .map(|button| self.connected.as_mut().unwrap().count_moves(button))
+                .sum()
+        };
+
+        self.move_count_cache
+            .insert((self.robot_pointing_at, to), move_count);
+
+        self.robot_pointing_at = to;
+        move_count
     }
 }
 
@@ -223,13 +241,93 @@ impl From<char> for Move {
 }
 
 /*-----------------------------------------------------------------------------
+  Moves
+-----------------------------------------------------------------------------*/
+
+#[cached]
+fn numeric_moves(current: Button, next: Button) -> Moves {
+    let start = *numeric_keys().get(&current).unwrap();
+    let end = *numeric_keys().get(&next).unwrap();
+
+    match (current, next) {
+        ('0' | 'A', '1' | '4' | '7') | ('1' | '4' | '7', '0' | 'A') => {
+            right_down_up_left(start, end)
+        }
+        _ => left_up_down_right(start, end),
+    }
+}
+
+#[cached]
+fn dpad_moves(current: Button, next: Button) -> Moves {
+    let start = *dpad_keys().get(&current).unwrap();
+    let end = *dpad_keys().get(&next).unwrap();
+
+    match (current, next) {
+        ('<', _) | (_, '<') => right_down_up_left(start, end),
+        _ => left_up_down_right(start, end),
+    }
+}
+
+/*-----------------------------------------------------------------------------
+  Move Strategies
+-----------------------------------------------------------------------------*/
+
+fn left_up_down_right(start: Position, end: Position) -> Moves {
+    let mut moves = Vec::new();
+    let mut current = start;
+
+    while current != end {
+        if current.1 > end.1 {
+            moves.push(Move::Left);
+            current.1 -= 1;
+        } else if current.0 > end.0 {
+            moves.push(Move::Up);
+            current.0 -= 1;
+        } else if current.0 < end.0 {
+            moves.push(Move::Down);
+            current.0 += 1;
+        } else {
+            moves.push(Move::Right);
+            current.1 += 1;
+        }
+    }
+
+    moves.push(Move::Activate);
+
+    moves
+}
+
+fn right_down_up_left(start: Position, end: Position) -> Moves {
+    let mut moves = Vec::new();
+    let mut current = start;
+
+    while current != end {
+        if current.1 < end.1 {
+            moves.push(Move::Right);
+            current.1 += 1;
+        } else if current.0 < end.0 {
+            moves.push(Move::Down);
+            current.0 += 1;
+        } else if current.0 > end.0 {
+            moves.push(Move::Up);
+            current.0 -= 1;
+        } else {
+            moves.push(Move::Left);
+            current.1 -= 1;
+        }
+    }
+
+    moves.push(Move::Activate);
+
+    moves
+}
+
+/*-----------------------------------------------------------------------------
   Calculate Code Complexity
 -----------------------------------------------------------------------------*/
 
-fn calculate_complexity(code: &str, moves: &[Move]) -> Complexity {
+fn calculate_complexity(code: &str, move_count: MoveCount) -> Complexity {
     let code_value: Complexity = code[..code.len() - 1].parse().unwrap();
-    let move_count: Complexity = moves.len();
-
     code_value * move_count
 }
 
@@ -250,19 +348,19 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_part1_solution() {
-    //     assert_eq!(
-    //         part1("../data/day21/input.txt"),
-    //         solution("../data/day21/input-part1-answer.txt")
-    //     );
-    // }
+    #[test]
+    fn test_part1_solution() {
+        assert_eq!(
+            part1("../data/day21/input.txt"),
+            solution("../data/day21/input-part1-answer.txt")
+        );
+    }
 
-    // #[test]
-    // fn test_part2_solution() {
-    //     assert_eq!(
-    //         part2("../data/day21/input.txt"),
-    //         solution("../data/day21/input-part2-answer.txt")
-    //     );
-    // }
+    #[test]
+    fn test_part2_solution() {
+        assert_eq!(
+            part2("../data/day21/input.txt"),
+            solution("../data/day21/input-part2-answer.txt")
+        );
+    }
 }
