@@ -1,16 +1,16 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::vec;
 
 /*-------------------------------------------------------------------------------------------------
   Day 22: Monkey Market
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let secrets = parse_input_file(input);
 
-    secrets
+    let secrets_sum: Answer = secrets
         .into_iter()
         .map(|secret| {
             let mut secret = secret;
@@ -19,13 +19,16 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
             }
             secret as Answer
         })
-        .sum::<Answer>()
-        .to_string()
+        .sum();
+
+    Some(secrets_sum.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let secrets = parse_input_file(input);
-    find_maximum_bananas(secrets).to_string()
+    let max_bananas = find_maximum_bananas(secrets);
+
+    Some(max_bananas.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -90,6 +93,24 @@ fn find_maximum_bananas(secrets: Secrets) -> Answer {
     }
 
     bananas_by_sequence.values().max().copied().unwrap()
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 22: Monkey Market")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

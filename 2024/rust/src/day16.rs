@@ -3,22 +3,24 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fs::read_to_string;
 use std::iter::once;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /*-------------------------------------------------------------------------------------------------
   Day 16: Reindeer Maze
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
     let (best_score, _) = race(&map);
-    best_score.to_string()
+
+    Some(best_score.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
     let (_, best_paths_tile_count) = race(&map);
-    best_paths_tile_count.to_string()
+
+    Some(best_paths_tile_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -164,6 +166,24 @@ impl Ord for State {
 impl PartialOrd for State {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 16: Reindeer Maze")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

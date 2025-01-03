@@ -1,6 +1,6 @@
 use regex::Regex;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use itertools::Itertools;
 
@@ -8,51 +8,21 @@ use itertools::Itertools;
   Day 17: Chronospatial Computer
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (registers, program) = parse_input_file(input);
     let mut computer = Computer::new(registers, &program);
     computer.run();
-    computer.format_output()
+
+    Some(computer.format_output())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (registers, program) = parse_input_file(input);
 
     let new_registers = [0, registers[1], registers[2]];
     let register_a = register_a_solver(new_registers, &program, 1).unwrap();
 
-    register_a.to_string()
-}
-
-fn register_a_solver(
-    registers: [RegisterValue; 3],
-    program: &Program,
-    slice_size: usize,
-) -> Option<RegisterValue> {
-    let register_a = registers[0];
-    let program_tail = &program[program.len() - slice_size..];
-    for register_octal in 0..63u8 {
-        let test_register_a = (register_a << 3) + register_octal as RegisterValue;
-
-        let mut computer = Computer::new([test_register_a, registers[1], registers[2]], program);
-        computer.run();
-
-        if computer.output == program_tail {
-            let next_registers = [test_register_a, registers[1], registers[2]];
-            if slice_size == program.len() {
-                return Some(test_register_a);
-            } else {
-                let result = register_a_solver(next_registers, program, slice_size + 1);
-                if result.is_some() {
-                    return result;
-                } else {
-                    continue;
-                }
-            }
-        }
-    }
-
-    None
+    Some(register_a.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -96,6 +66,37 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> ([RegisterValue; 3], 
         .collect();
 
     (registers, program)
+}
+
+fn register_a_solver(
+    registers: [RegisterValue; 3],
+    program: &Program,
+    slice_size: usize,
+) -> Option<RegisterValue> {
+    let register_a = registers[0];
+    let program_tail = &program[program.len() - slice_size..];
+    for register_octal in 0..63u8 {
+        let test_register_a = (register_a << 3) + register_octal as RegisterValue;
+
+        let mut computer = Computer::new([test_register_a, registers[1], registers[2]], program);
+        computer.run();
+
+        if computer.output == program_tail {
+            let next_registers = [test_register_a, registers[1], registers[2]];
+            if slice_size == program.len() {
+                return Some(test_register_a);
+            } else {
+                let result = register_a_solver(next_registers, program, slice_size + 1);
+                if result.is_some() {
+                    return result;
+                } else {
+                    continue;
+                }
+            }
+        }
+    }
+
+    None
 }
 
 /*-----------------------------------------------------------------------------
@@ -272,6 +273,24 @@ impl<'p> Computer<'p> {
             operand_value,
             description
         );
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 17: Chronospatial Computer")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

@@ -1,28 +1,31 @@
+use crate::shared::map::{Coordinate, Map, MapIndex, Offset};
+use itertools::Itertools;
+use std::collections::{HashMap, HashSet};
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 12: Garden Groups
 -------------------------------------------------------------------------------------------------*/
 
-use itertools::Itertools;
-
-use crate::shared::map::{Coordinate, Map, MapIndex, Offset};
-use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
-use std::path::Path;
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
     let mut regions = Regions::new(&map);
     regions.map_regions();
 
-    calculate_fencing_cost_part1(&regions).to_string()
+    let cost = calculate_fencing_cost_part1(&regions);
+
+    Some(cost.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
     let mut regions = Regions::new(&map);
     regions.map_regions();
 
-    calculate_fencing_cost_part2(&regions).to_string()
+    let cost = calculate_fencing_cost_part2(&regions);
+
+    Some(cost.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -253,6 +256,24 @@ impl<'m> Regions<'m> {
             .filter_map(|offset| self.map.project_index_offset(index, *offset))
             .filter(|index| self.map.get(*index) == Some(&plant))
             .for_each(|index| self.plot_region(region_id, region, plant, index));
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 12: Garden Groups")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

@@ -1,39 +1,29 @@
+use std::collections::HashSet;
+use std::fs::read_to_string;
+use std::hash::Hash;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 10: Hoof It
 -------------------------------------------------------------------------------------------------*/
 
-use std::collections::HashSet;
-use std::fs::read_to_string;
-use std::hash::Hash;
-use std::path::Path;
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
     let (_, peak_count) = map_trails(&map);
-    peak_count.to_string()
+
+    Some(peak_count.to_string())
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
     let (trail_count, _) = map_trails(&map);
-    trail_count.to_string()
+
+    Some(trail_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------------
-  Parse Input File
------------------------------------------------------------------------------*/
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map {
     let map: Vec<Vec<_>> = read_to_string(input)
@@ -44,10 +34,6 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map {
 
     Map::new(map)
 }
-
-/*-----------------------------------------------------------------------------
-  Map Trails
------------------------------------------------------------------------------*/
 
 fn map_trails(map: &Map) -> (TrailCount, PeakCount) {
     map.get_trailheads()
@@ -61,10 +47,6 @@ fn map_trails(map: &Map) -> (TrailCount, PeakCount) {
         .reduce(|acc, value| (acc.0 + value.0, acc.1 + value.1))
         .unwrap()
 }
-
-/*-----------------------------------------------------------------------------
-  Recursively Hike Trails
------------------------------------------------------------------------------*/
 
 fn hike_trails(map: &Map, hiker: Hiker) -> (TrailCount, HashSet<Peak>) {
     // Base cases
@@ -232,6 +214,24 @@ impl Direction {
             Direction::East => (0, 1),
             Direction::West => (0, -1),
         }
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 10: Hoof It")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

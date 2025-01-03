@@ -1,7 +1,7 @@
 use nalgebra::{matrix, vector};
 use regex::Regex;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /*-------------------------------------------------------------------------------------------------
   Day 13: Claw Contraption
@@ -9,18 +9,19 @@ use std::path::Path;
 
 const F64_TOLERANCE: f64 = 1e-4;
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let claw_machines = parse_input_file(input);
 
-    claw_machines
+    let minimum_token_count = claw_machines
         .iter()
         .filter_map(|claw_machine| claw_machine.solve())
         .map(|(a, b)| 3 * a + b)
-        .sum::<u64>()
-        .to_string()
+        .sum::<u64>();
+
+    Some(minimum_token_count.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let claw_machines = parse_input_file(input);
 
     let updated_measurements = claw_machines
@@ -32,12 +33,13 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         })
         .collect::<Vec<_>>();
 
-    updated_measurements
+    let minimum_token_count = updated_measurements
         .iter()
         .filter_map(|claw_machine| claw_machine.solve())
         .map(|(a, b)| 3 * a + b)
-        .sum::<u64>()
-        .to_string()
+        .sum::<u64>();
+
+    Some(minimum_token_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -94,6 +96,24 @@ impl ClawMachine {
         } else {
             None
         }
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 13: Claw Contraption")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

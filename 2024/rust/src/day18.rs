@@ -2,28 +2,13 @@ use crate::shared::map::{Direction4C, Map, MapIndex};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /*-------------------------------------------------------------------------------------------------
   Day 18: RAM Run
 -------------------------------------------------------------------------------------------------*/
 
-#[cfg(test)]
-fn example_part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    let corrupted_memory_positions = parse_input_file(input);
-    let mut map = Map::new(6 + 1, 6 + 1, '.');
-    for position in corrupted_memory_positions.iter().take(12) {
-        map.set(*position, '#');
-    }
-
-    let number_of_steps_to_exit = escape_route(&map);
-    match number_of_steps_to_exit {
-        Some(steps) => steps.to_string(),
-        None => "No escape route found!".to_string(),
-    }
-}
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let corrupted_memory_positions = parse_input_file(input);
     let mut map = Map::new(70 + 1, 70 + 1, '.');
     for position in corrupted_memory_positions.iter().take(1024) {
@@ -31,13 +16,11 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
     }
 
     let number_of_steps_to_exit = escape_route(&map);
-    match number_of_steps_to_exit {
-        Some(steps) => steps.to_string(),
-        None => "No escape route found!".to_string(),
-    }
+
+    number_of_steps_to_exit.map(|steps| steps.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let corrupted_memory_positions = parse_input_file(input);
     let mut map = Map::new(70 + 1, 70 + 1, '.');
 
@@ -55,7 +38,8 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         };
     }
 
-    format!("{x},{y}", x = death_block.1, y = death_block.0) // MapIndex is (row, column)
+    // MapIndex is (row, column)
+    Some(format!("{x},{y}", x = death_block.1, y = death_block.0))
 }
 
 /*--------------------------------------------------------------------------------------
@@ -164,8 +148,39 @@ impl PartialOrd for State {
 }
 
 /*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 18: RAM Run")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
   Tests
 -------------------------------------------------------------------------------------------------*/
+
+#[cfg(test)]
+fn example_part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let corrupted_memory_positions = parse_input_file(input);
+    let mut map = Map::new(6 + 1, 6 + 1, '.');
+    for position in corrupted_memory_positions.iter().take(12) {
+        map.set(*position, '#');
+    }
+
+    let number_of_steps_to_exit = escape_route(&map);
+
+    number_of_steps_to_exit.map(|steps| steps.to_string())
+}
 
 #[cfg(test)]
 mod tests {
@@ -188,11 +203,12 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_part2_solution() {
-    //     assert_eq!(
-    //         part2("../data/day18/input.txt"),
-    //         solution("../data/day18/input-part2-answer.txt")
-    //     );
-    // }
+    #[test]
+    #[cfg_attr(not(feature = "slow_tests"), ignore)]
+    fn test_part2_solution() {
+        assert_eq!(
+            part2("../data/day18/input.txt"),
+            solution("../data/day18/input-part2-answer.txt")
+        );
+    }
 }

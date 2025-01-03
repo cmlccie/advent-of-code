@@ -1,15 +1,45 @@
-/*-------------------------------------------------------------------------------------------------
-  Day 1: Historian Hysteria
--------------------------------------------------------------------------------------------------*/
-
 use crate::utils::log_if_error;
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+/*-------------------------------------------------------------------------------------------------
+  Day 1: Historian Hysteria
+-------------------------------------------------------------------------------------------------*/
+
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let (mut left_list, mut right_list): (Vec<_>, Vec<_>) = parse_file(input);
+
+    left_list.sort();
+    right_list.sort();
+
+    let total_distance = std::iter::zip(left_list.iter(), right_list.iter())
+        .map(|(left, right)| (right - left).abs())
+        .sum::<i64>();
+
+    Some(total_distance.to_string())
+}
+
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let (left_list, right_list): (Vec<_>, Vec<_>) = parse_file(input);
+
+    let right_list_id_count: HashMap<i64, i64> =
+        right_list.iter().fold(HashMap::new(), |mut acc, id| {
+            *acc.entry(*id).or_insert(0) += 1;
+            acc
+        });
+
+    let similarity_score = left_list
+        .iter()
+        .map(|value| value * *right_list_id_count.get(value).unwrap_or(&0))
+        .sum::<i64>();
+
+    Some(similarity_score.to_string())
+}
 
 /*--------------------------------------------------------------------------------------
-  Helper Functions
+  Core
 --------------------------------------------------------------------------------------*/
 
 fn parse_line(line: &str) -> Result<(i64, i64)> {
@@ -38,42 +68,22 @@ fn parse_file<P: AsRef<Path> + ?Sized>(file_path: &P) -> (Vec<i64>, Vec<i64>) {
         .unzip()
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    let (mut left_list, mut right_list): (Vec<_>, Vec<_>) = parse_file(input);
-
-    left_list.sort();
-    right_list.sort();
-
-    // Total difference between the two lists
-    std::iter::zip(left_list.iter(), right_list.iter())
-        .map(|(left, right)| (right - left).abs())
-        .sum::<i64>()
-        .to_string()
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 1: Historian Hysteria")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    let (left_list, right_list): (Vec<_>, Vec<_>) = parse_file(input);
-
-    // Calculate similarity score
-    let right_list_id_count: HashMap<i64, i64> =
-        right_list.iter().fold(HashMap::new(), |mut acc, id| {
-            *acc.entry(*id).or_insert(0) += 1;
-            acc
-        });
-
-    left_list
-        .iter()
-        .map(|value| value * *right_list_id_count.get(value).unwrap_or(&0))
-        .sum::<i64>()
-        .to_string()
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

@@ -1,16 +1,12 @@
+use std::collections::HashSet;
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 6: Guard Gallivant
 -------------------------------------------------------------------------------------------------*/
 
-use std::collections::HashSet;
-use std::fs::read_to_string;
-use std::path::Path;
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
 
     let start_position = find_guard_start_position(&map);
@@ -18,16 +14,13 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
 
     while guard.next(&map) != Action::Exit {}
 
-    let visited: HashSet<(usize, usize)> =
+    let visited_positions: HashSet<(usize, usize)> =
         guard.route.iter().map(|(position, _)| *position).collect();
-    visited.len().to_string()
+
+    Some(visited_positions.len().to_string())
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let mut map = parse_input_file(input);
 
     let start_position = find_guard_start_position(&map);
@@ -58,16 +51,12 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         map.map[position.0][position.1] = saved_tile;
     }
 
-    loop_obstruction_positions.len().to_string()
+    Some(loop_obstruction_positions.len().to_string())
 }
 
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------------
-  Parse Input File
------------------------------------------------------------------------------*/
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map {
     let map: Vec<Vec<char>> = read_to_string(input)
@@ -242,6 +231,24 @@ enum Action {
     Move,
     Exit,
     Loop,
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 6: Guard Gallivant")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

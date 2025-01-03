@@ -5,26 +5,28 @@ use std::fmt::{self, Display, Formatter};
 use std::fs::read_to_string;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 /*-------------------------------------------------------------------------------------------------
   Day 24: Crossed Wires
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (mut wires, gates) = parse_input_file(input);
     process_gates(&mut wires, &gates);
-    combine_bits(&wires, "z").to_string()
+    let z_value = combine_bits(&wires, "z");
+
+    Some(z_value.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (_, gates) = parse_input_file(input);
     let crossed_wires = find_crossed_wires(&gates);
 
     let crossed_wires: BTreeSet<Wire> = crossed_wires.iter().flatten().cloned().collect();
 
-    crossed_wires.iter().join(",")
+    Some(crossed_wires.iter().join(","))
 }
 
 /*--------------------------------------------------------------------------------------
@@ -398,6 +400,24 @@ impl GateRole {
             (_, _, GateOperation::And) => GateRole::CAnd,
             (_, _, GateOperation::Or) => GateRole::COr,
         }
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 24: Crossed Wires")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

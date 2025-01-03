@@ -1,14 +1,48 @@
+use crate::utils::log_if_error;
+use anyhow::{anyhow, Result};
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 2: Red-Nosed Reports
 -------------------------------------------------------------------------------------------------*/
 
-use crate::utils::log_if_error;
-use anyhow::{anyhow, Result};
-use std::fs::read_to_string;
-use std::path::Path;
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let safe_report_count = read_to_string(input)
+        .unwrap()
+        .lines()
+        .map(parse_line)
+        .inspect(log_if_error)
+        .filter_map(Result::ok)
+        .map(|report| report_status(&report))
+        .map(|status| match status {
+            ReportStatus::Safe => 1,
+            ReportStatus::Unsafe => 0,
+        })
+        .sum::<i64>();
+
+    Some(safe_report_count.to_string())
+}
+
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let updated_safe_report_count = read_to_string(input)
+        .unwrap()
+        .lines()
+        .map(parse_line)
+        .inspect(log_if_error)
+        .filter_map(Result::ok)
+        .map(|report| report_status_with_problem_dampener(&report))
+        .map(|status| match status {
+            ReportStatus::Safe => 1,
+            ReportStatus::Unsafe => 0,
+        })
+        .sum::<i64>();
+
+    Some(updated_safe_report_count.to_string())
+}
 
 /*--------------------------------------------------------------------------------------
-  Helper Functions
+  Core
 --------------------------------------------------------------------------------------*/
 
 fn parse_line(line: &str) -> Result<Vec<i64>> {
@@ -21,19 +55,11 @@ fn parse_line(line: &str) -> Result<Vec<i64>> {
         .collect()
 }
 
-/*--------------------------------------------------------------------------------------
-  Helper Types
---------------------------------------------------------------------------------------*/
-
 #[derive(Debug, PartialEq)]
 enum ReportStatus {
     Safe,
     Unsafe,
 }
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
 
 fn report_all_increasing(report: &[i64]) -> bool {
     report.windows(2).all(|levels| levels[0] < levels[1])
@@ -60,26 +86,6 @@ fn report_status(report: &[i64]) -> ReportStatus {
     }
 }
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(parse_line)
-        .inspect(log_if_error)
-        .filter_map(Result::ok)
-        .map(|report| report_status(&report))
-        .map(|status| match status {
-            ReportStatus::Safe => 1,
-            ReportStatus::Unsafe => 0,
-        })
-        .sum::<i64>()
-        .to_string()
-}
-
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
 fn report_status_with_problem_dampener(report: &[i64]) -> ReportStatus {
     if report_status(report) == ReportStatus::Safe {
         return ReportStatus::Safe;
@@ -98,20 +104,22 @@ fn report_status_with_problem_dampener(report: &[i64]) -> ReportStatus {
     ReportStatus::Unsafe
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(parse_line)
-        .inspect(log_if_error)
-        .filter_map(Result::ok)
-        .map(|report| report_status_with_problem_dampener(&report))
-        .map(|status| match status {
-            ReportStatus::Safe => 1,
-            ReportStatus::Unsafe => 0,
-        })
-        .sum::<i64>()
-        .to_string()
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 2: Red-Nosed Reports")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

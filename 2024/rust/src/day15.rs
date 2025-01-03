@@ -1,13 +1,13 @@
 use crate::shared::map::{Map, MapIndex, Offset};
 use std::fmt::{Display, Formatter};
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /*-------------------------------------------------------------------------------------------------
   Day 15: Warehouse Woes
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (mut warehouse, directions) = parse_input_file(input);
 
     let robot_starting_position = warehouse
@@ -20,10 +20,12 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         robot.attempt_move(&mut warehouse, direction);
     }
 
-    calculate_gps_coordinates_sum(&warehouse).to_string()
+    let gps_coordinate_sum = calculate_gps_coordinates_sum(&warehouse);
+
+    Some(gps_coordinate_sum.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (warehouse, directions) = parse_input_file(input);
     let mut warehouse = modify_warehouse(&warehouse);
     log::debug!("Starting Warehouse:\n{}", warehouse);
@@ -39,7 +41,9 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         log::debug!("Direction: {}\n{}", direction, warehouse);
     }
 
-    calculate_gps_coordinates_sum(&warehouse).to_string()
+    let gps_coordinate_sum = calculate_gps_coordinates_sum(&warehouse);
+
+    Some(gps_coordinate_sum.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -360,6 +364,24 @@ fn map_move(warehouse: &mut Map<WarehouseItem>, from: Position, to: Position) {
     let item = warehouse.get(from).unwrap().to_owned();
     warehouse.set(from, WarehouseItem::Empty);
     warehouse.set(to, item);
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 15: Warehouse Woes")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

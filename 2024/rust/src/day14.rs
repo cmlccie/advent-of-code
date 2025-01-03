@@ -1,13 +1,13 @@
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /*-------------------------------------------------------------------------------------------------
   Day 14: Restroom Redoubt
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let lobby = Lobby::new(101, 103);
     let mut robots = parse_input_file(input);
 
@@ -15,10 +15,12 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
     }
 
-    calculate_safety_factor(&robots, &lobby).to_string()
+    let safety_factor = calculate_safety_factor(&robots, &lobby);
+
+    Some(safety_factor.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let lobby = Lobby::new(101, 103);
     let mut robots = parse_input_file(input);
 
@@ -36,7 +38,7 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
     }
 
-    first_christmas_tree.to_string()
+    Some(first_christmas_tree.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -188,6 +190,24 @@ enum Quadrant {
     Q2,
     Q3,
     Q4,
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 14: Restroom Redoubt")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

@@ -1,29 +1,30 @@
 use cached::proc_macro::cached;
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 /*-------------------------------------------------------------------------------------------------
   Day 21: Keypad Conundrum
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let codes = parse_input_file(input);
 
     let numpad = Box::new(Keypad::new(KeypadType::NumPad, "Robot0", None));
     let dpad1 = Box::new(Keypad::new(KeypadType::DPad, "Robot1", Some(numpad)));
     let mut dpad2 = Box::new(Keypad::new(KeypadType::DPad, "Robot2", Some(dpad1)));
 
-    codes
+    let code_complexity: Complexity = codes
         .iter()
         .map(|code| (code, dpad2.enter_code(code)))
         .map(|(code, moves)| calculate_complexity(code, moves.len()))
-        .sum::<Complexity>()
-        .to_string()
+        .sum();
+
+    Some(code_complexity.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let codes = parse_input_file(input);
 
     let mut previous_keypad = None;
@@ -37,7 +38,7 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
 
     let mut final_keypad = Box::new(Keypad::new(KeypadType::NumPad, "Robot", previous_keypad));
 
-    codes
+    let code_complexity: Complexity = codes
         .iter()
         .map(|code| {
             let move_count: MoveCount = code
@@ -46,8 +47,9 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
                 .sum();
             calculate_complexity(code, move_count)
         })
-        .sum::<Complexity>()
-        .to_string()
+        .sum();
+
+    Some(code_complexity.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -68,6 +70,11 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Code> {
         .lines()
         .map(|line| line.to_string())
         .collect()
+}
+
+fn calculate_complexity(code: &str, move_count: MoveCount) -> Complexity {
+    let code_value: Complexity = code[..code.len() - 1].parse().unwrap();
+    code_value * move_count
 }
 
 /*-----------------------------------------------------------------------------
@@ -206,6 +213,10 @@ impl Keypad {
     }
 }
 
+/*-----------------------------------------------------------------------------
+  Move
+-----------------------------------------------------------------------------*/
+
 #[derive(Debug, Clone, Copy)]
 enum Move {
     Up,
@@ -322,13 +333,22 @@ fn right_down_up_left(start: Position, end: Position) -> Moves {
     moves
 }
 
-/*-----------------------------------------------------------------------------
-  Calculate Code Complexity
------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
 
-fn calculate_complexity(code: &str, move_count: MoveCount) -> Complexity {
-    let code_value: Complexity = code[..code.len() - 1].parse().unwrap();
-    code_value * move_count
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 21: Keypad Conundrum")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

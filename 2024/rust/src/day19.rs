@@ -1,13 +1,13 @@
 use cached::proc_macro::cached;
 use regex::Regex;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /*-------------------------------------------------------------------------------------------------
   Day 19: Linen Layout
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (patterns, designs) = parse_input_file(input);
 
     let pattern_regex = Regex::new(format!("^({})+$", patterns.join("|")).as_str()).unwrap();
@@ -17,17 +17,18 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         .filter(|design| pattern_regex.is_match(design))
         .count();
 
-    possible_designs_count.to_string()
+    Some(possible_designs_count.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (patterns, designs) = parse_input_file(input);
 
-    designs
+    let all_possible_design_combinations_count = designs
         .into_iter()
         .map(|design| count_ways_to_make_design(design, patterns.clone()))
-        .sum::<DesignCount>()
-        .to_string()
+        .sum::<DesignCount>();
+
+    Some(all_possible_design_combinations_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -74,6 +75,24 @@ fn count_ways_to_make_design(design: String, patterns: Patterns) -> DesignCount 
             }
         })
         .sum()
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 19: Linen Layout")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

@@ -1,17 +1,13 @@
+use itertools::Itertools;
+use std::collections::{HashMap, HashSet};
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 8: Resonant Collinearity
 -------------------------------------------------------------------------------------------------*/
 
-use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
-use std::path::Path;
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
 
     let anti_nodes: HashSet<Coordinate> = get_antenna_pairs(&map.antennas)
@@ -20,14 +16,10 @@ pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         .filter(|coordinate| filter_off_map_coordinates(&map, coordinate))
         .collect();
 
-    anti_nodes.len().to_string()
+    Some(anti_nodes.len().to_string())
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
 
     let anti_nodes: HashSet<Coordinate> = get_antenna_pairs(&map.antennas)
@@ -36,7 +28,7 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
         .filter(|coordinate| filter_off_map_coordinates(&map, coordinate))
         .collect();
 
-    anti_nodes.len().to_string()
+    Some(anti_nodes.len().to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -149,6 +141,24 @@ fn filter_off_map_coordinates(map: &Map, coordinate: &Coordinate) -> bool {
     let (row, column) = coordinate;
 
     *row >= 0 && *row < map.rows && *column >= 0 && *column < map.columns
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 8: Resonant Collinearity")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

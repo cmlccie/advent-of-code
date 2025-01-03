@@ -1,27 +1,23 @@
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 11: Plutonian Pebbles
 -------------------------------------------------------------------------------------------------*/
 
-use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::path::Path;
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let stones = parse_input_file(input);
-    blinks(&stones, 25).to_string()
+    let stone_count = blinks(&stones, 25);
+
+    Some(stone_count.to_string())
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let stones = parse_input_file(input);
-    blinks(&stones, 75).to_string()
+    let stone_count = blinks(&stones, 75);
+
+    Some(stone_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -31,10 +27,6 @@ pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
 type Stone = u64;
 type StoneCount = usize;
 type BlinkCount = u8;
-
-/*-----------------------------------------------------------------------------
-  Parse Input File
------------------------------------------------------------------------------*/
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Stone> {
     read_to_string(input)
@@ -47,10 +39,6 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Stone> {
         .collect()
 }
 
-/*-----------------------------------------------------------------------------
-  Blinks
------------------------------------------------------------------------------*/
-
 fn blinks(stones: &[Stone], count: BlinkCount) -> StoneCount {
     let mut cache = Cache::new();
     stones
@@ -59,8 +47,20 @@ fn blinks(stones: &[Stone], count: BlinkCount) -> StoneCount {
         .sum()
 }
 
+fn transform(stone: &Stone) -> Vec<Stone> {
+    let stone_text = stone.to_string();
+    if stone == &0 {
+        vec![1]
+    } else if stone_text.len() % 2 == 0 {
+        let (left, right) = stone_text.split_at(stone_text.len() / 2);
+        vec![left.parse().unwrap(), right.parse().unwrap()]
+    } else {
+        vec![stone * 2024]
+    }
+}
+
 /*-----------------------------------------------------------------------------
-  Recursive Blink with Cache
+  Recursive Blink Cache
 -----------------------------------------------------------------------------*/
 
 struct Cache {
@@ -106,19 +106,21 @@ impl Cache {
     }
 }
 
-/*-----------------------------------------------------------------------------
-  Transform Stone
------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
 
-fn transform(stone: &Stone) -> Vec<Stone> {
-    let stone_text = stone.to_string();
-    if stone == &0 {
-        vec![1]
-    } else if stone_text.len() % 2 == 0 {
-        let (left, right) = stone_text.split_at(stone_text.len() / 2);
-        vec![left.parse().unwrap(), right.parse().unwrap()]
-    } else {
-        vec![stone * 2024]
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 11: Plutonian Pebbles")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

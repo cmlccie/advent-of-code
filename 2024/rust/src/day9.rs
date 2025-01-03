@@ -1,79 +1,28 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 9: Disk Fragmenter
 -------------------------------------------------------------------------------------------------*/
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs::read_to_string;
-// use std::io::prelude::*;
-use std::path::Path;
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let mut disk = parse_input_file(input);
     disk.compact_blocks();
-    disk.checksum().to_string()
+
+    Some(disk.checksum().to_string())
 }
 
-impl Disk {
-    fn compact_blocks(&mut self) {
-        loop {
-            let last_block_index = *self.blocks.last_key_value().unwrap().0;
-            let first_free_index = self.get_first_free_block_index();
-
-            // Exit if there are no more free blocks to the left of the last file block
-            if last_block_index < first_free_index {
-                break;
-            }
-
-            // Move the last file block to the first free block
-            self.move_file_block(last_block_index, first_free_index);
-        }
-    }
-}
-
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let mut disk = parse_input_file(input);
     disk.compact_files();
-    disk.checksum().to_string()
+
+    Some(disk.checksum().to_string())
 }
 
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
-
-impl Disk {
-    fn compact_files(&mut self) {
-        let last_file_id = *self.files.last_key_value().unwrap().0;
-
-        for file_id in (0..=last_file_id).rev() {
-            let free_index = {
-                let file = self.files.get(&file_id).unwrap();
-                self.find_free_range(file.length, file.lowest_index())
-            };
-
-            if let Some(free_index) = free_index {
-                self.move_file(file_id, free_index);
-                log::debug!("Moved file {} to index {}", file_id, free_index);
-            } else {
-                log::debug!(
-                    "Could not move file {}; no free range to left of file",
-                    file_id
-                );
-            }
-        }
-    }
-}
-
-/*-----------------------------------------------------------------------------
-  Parse Input File
------------------------------------------------------------------------------*/
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Disk {
     let file_contents = read_to_string(input).unwrap();
@@ -126,6 +75,42 @@ impl Disk {
             blocks,
 
             first_free_block_cache: 0,
+        }
+    }
+
+    fn compact_blocks(&mut self) {
+        loop {
+            let last_block_index = *self.blocks.last_key_value().unwrap().0;
+            let first_free_index = self.get_first_free_block_index();
+
+            // Exit if there are no more free blocks to the left of the last file block
+            if last_block_index < first_free_index {
+                break;
+            }
+
+            // Move the last file block to the first free block
+            self.move_file_block(last_block_index, first_free_index);
+        }
+    }
+
+    fn compact_files(&mut self) {
+        let last_file_id = *self.files.last_key_value().unwrap().0;
+
+        for file_id in (0..=last_file_id).rev() {
+            let free_index = {
+                let file = self.files.get(&file_id).unwrap();
+                self.find_free_range(file.length, file.lowest_index())
+            };
+
+            if let Some(free_index) = free_index {
+                self.move_file(file_id, free_index);
+                log::debug!("Moved file {} to index {}", file_id, free_index);
+            } else {
+                log::debug!(
+                    "Could not move file {}; no free range to left of file",
+                    file_id
+                );
+            }
         }
     }
 
@@ -247,6 +232,24 @@ fn allocate_files(
                 cursor += *length as BlockIndex;
             }
         }
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 9: Disk Fragmenter")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

@@ -27,12 +27,9 @@ pub(crate) fn log_if_error<T>(result: &Result<T>) {
 
 /// Get the solution from a file. The file should contain a single line with the solution.
 #[cfg(test)]
-pub(crate) fn solution<P>(file_path: &P) -> String
+pub(crate) fn solution<P>(file_path: &P) -> Option<String>
 where
     P: AsRef<Path> + ?Sized,
 {
-    std::fs::read_to_string(file_path)
-        .unwrap()
-        .trim()
-        .to_string()
+    Some(std::fs::read_to_string(file_path).ok()?.trim().to_string())
 }

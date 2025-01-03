@@ -1,10 +1,9 @@
+use clap::{Parser, Subcommand};
+use stderrlog::LogLevelNum;
+
 /*-------------------------------------------------------------------------------------------------
   Advent of Code 2024
 -------------------------------------------------------------------------------------------------*/
-
-use clap::{Parser, ValueEnum};
-use std::path::PathBuf;
-use stderrlog::LogLevelNum;
 
 /*--------------------------------------------------------------------------------------
   Modules
@@ -39,57 +38,71 @@ mod shared;
 mod utils;
 
 /*--------------------------------------------------------------------------------------
-  CLI Args
+  Command Line Interface (CLI)
 --------------------------------------------------------------------------------------*/
 
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = "Advent of Code 2024")]
 struct Args {
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     pub debug: bool,
 
-    #[clap(value_enum)]
+    #[command(subcommand)]
     day: Days,
-
-    #[clap(value_enum)]
-    part: Parts,
-
-    input: PathBuf,
 }
 
-#[derive(ValueEnum, Clone, Debug)]
+#[derive(Subcommand)]
 enum Days {
-    Day1,
-    Day2,
-    Day3,
-    Day4,
-    Day5,
-    Day6,
-    Day7,
-    Day8,
-    Day9,
-    Day10,
-    Day11,
-    Day12,
-    Day13,
-    Day14,
-    Day15,
-    Day16,
-    Day17,
-    Day18,
-    Day19,
-    Day20,
-    Day21,
-    Day22,
-    Day23,
-    Day24,
-    Day25,
-}
-
-#[derive(ValueEnum, Clone, Debug)]
-enum Parts {
-    Part1,
-    Part2,
+    #[clap(subcommand)]
+    Day1(day1::Args),
+    #[clap(subcommand)]
+    Day2(day2::Args),
+    #[clap(subcommand)]
+    Day3(day3::Args),
+    #[clap(subcommand)]
+    Day4(day4::Args),
+    #[clap(subcommand)]
+    Day5(day5::Args),
+    #[clap(subcommand)]
+    Day6(day6::Args),
+    #[clap(subcommand)]
+    Day7(day7::Args),
+    #[clap(subcommand)]
+    Day8(day8::Args),
+    #[clap(subcommand)]
+    Day9(day9::Args),
+    #[clap(subcommand)]
+    Day10(day10::Args),
+    #[clap(subcommand)]
+    Day11(day11::Args),
+    #[clap(subcommand)]
+    Day12(day12::Args),
+    #[clap(subcommand)]
+    Day13(day13::Args),
+    #[clap(subcommand)]
+    Day14(day14::Args),
+    #[clap(subcommand)]
+    Day15(day15::Args),
+    #[clap(subcommand)]
+    Day16(day16::Args),
+    #[clap(subcommand)]
+    Day17(day17::Args),
+    #[clap(subcommand)]
+    Day18(day18::Args),
+    #[clap(subcommand)]
+    Day19(day19::Args),
+    #[clap(subcommand)]
+    Day20(day20::Args),
+    #[clap(subcommand)]
+    Day21(day21::Args),
+    #[clap(subcommand)]
+    Day22(day22::Args),
+    #[clap(subcommand)]
+    Day23(day23::Args),
+    #[clap(subcommand)]
+    Day24(day24::Args),
+    #[clap(subcommand)]
+    Day25(day25::Args),
 }
 
 /*--------------------------------------------------------------------------------------
@@ -110,133 +123,35 @@ fn main() {
         .init()
         .unwrap();
 
-    // Call the appropriate function to get the answer
-    let answer = match args.day {
-        Days::Day1 => match args.part {
-            Parts::Part1 => day1::part1(&args.input),
-            Parts::Part2 => day1::part2(&args.input),
-        },
-
-        Days::Day2 => match args.part {
-            Parts::Part1 => day2::part1(&args.input),
-            Parts::Part2 => day2::part2(&args.input),
-        },
-
-        Days::Day3 => match args.part {
-            Parts::Part1 => day3::part1(&args.input),
-            Parts::Part2 => day3::part2(&args.input),
-        },
-
-        Days::Day4 => match args.part {
-            Parts::Part1 => day4::part1(&args.input),
-            Parts::Part2 => day4::part2(&args.input),
-        },
-
-        Days::Day5 => match args.part {
-            Parts::Part1 => day5::part1(&args.input),
-            Parts::Part2 => day5::part2(&args.input),
-        },
-
-        Days::Day6 => match args.part {
-            Parts::Part1 => day6::part1(&args.input),
-            Parts::Part2 => day6::part2(&args.input),
-        },
-
-        Days::Day7 => match args.part {
-            Parts::Part1 => day7::part1(&args.input),
-            Parts::Part2 => day7::part2(&args.input),
-        },
-
-        Days::Day8 => match args.part {
-            Parts::Part1 => day8::part1(&args.input),
-            Parts::Part2 => day8::part2(&args.input),
-        },
-
-        Days::Day9 => match args.part {
-            Parts::Part1 => day9::part1(&args.input),
-            Parts::Part2 => day9::part2(&args.input),
-        },
-
-        Days::Day10 => match args.part {
-            Parts::Part1 => day10::part1(&args.input),
-            Parts::Part2 => day10::part2(&args.input),
-        },
-
-        Days::Day11 => match args.part {
-            Parts::Part1 => day11::part1(&args.input),
-            Parts::Part2 => day11::part2(&args.input),
-        },
-
-        Days::Day12 => match args.part {
-            Parts::Part1 => day12::part1(&args.input),
-            Parts::Part2 => day12::part2(&args.input),
-        },
-
-        Days::Day13 => match args.part {
-            Parts::Part1 => day13::part1(&args.input),
-            Parts::Part2 => day13::part2(&args.input),
-        },
-
-        Days::Day14 => match args.part {
-            Parts::Part1 => day14::part1(&args.input),
-            Parts::Part2 => day14::part2(&args.input),
-        },
-
-        Days::Day15 => match args.part {
-            Parts::Part1 => day15::part1(&args.input),
-            Parts::Part2 => day15::part2(&args.input),
-        },
-
-        Days::Day16 => match args.part {
-            Parts::Part1 => day16::part1(&args.input),
-            Parts::Part2 => day16::part2(&args.input),
-        },
-
-        Days::Day17 => match args.part {
-            Parts::Part1 => day17::part1(&args.input),
-            Parts::Part2 => day17::part2(&args.input),
-        },
-
-        Days::Day18 => match args.part {
-            Parts::Part1 => day18::part1(&args.input),
-            Parts::Part2 => day18::part2(&args.input),
-        },
-
-        Days::Day19 => match args.part {
-            Parts::Part1 => day19::part1(&args.input),
-            Parts::Part2 => day19::part2(&args.input),
-        },
-
-        Days::Day20 => match args.part {
-            Parts::Part1 => day20::part1(&args.input),
-            Parts::Part2 => day20::part2(&args.input),
-        },
-
-        Days::Day21 => match args.part {
-            Parts::Part1 => day21::part1(&args.input),
-            Parts::Part2 => day21::part2(&args.input),
-        },
-
-        Days::Day22 => match args.part {
-            Parts::Part1 => day22::part1(&args.input),
-            Parts::Part2 => day22::part2(&args.input),
-        },
-
-        Days::Day23 => match args.part {
-            Parts::Part1 => day23::part1(&args.input),
-            Parts::Part2 => day23::part2(&args.input),
-        },
-
-        Days::Day24 => match args.part {
-            Parts::Part1 => day24::part1(&args.input),
-            Parts::Part2 => day24::part2(&args.input),
-        },
-
-        Days::Day25 => match args.part {
-            Parts::Part1 => day25::part1(&args.input),
-            Parts::Part2 => day25::part2(&args.input),
-        },
+    let answer: Option<String> = match args.day {
+        Days::Day1(args) => day1::main(args),
+        Days::Day2(args) => day2::main(args),
+        Days::Day3(args) => day3::main(args),
+        Days::Day4(args) => day4::main(args),
+        Days::Day5(args) => day5::main(args),
+        Days::Day6(args) => day6::main(args),
+        Days::Day7(args) => day7::main(args),
+        Days::Day8(args) => day8::main(args),
+        Days::Day9(args) => day9::main(args),
+        Days::Day10(args) => day10::main(args),
+        Days::Day11(args) => day11::main(args),
+        Days::Day12(args) => day12::main(args),
+        Days::Day13(args) => day13::main(args),
+        Days::Day14(args) => day14::main(args),
+        Days::Day15(args) => day15::main(args),
+        Days::Day16(args) => day16::main(args),
+        Days::Day17(args) => day17::main(args),
+        Days::Day18(args) => day18::main(args),
+        Days::Day19(args) => day19::main(args),
+        Days::Day20(args) => day20::main(args),
+        Days::Day21(args) => day21::main(args),
+        Days::Day22(args) => day22::main(args),
+        Days::Day23(args) => day23::main(args),
+        Days::Day24(args) => day24::main(args),
+        Days::Day25(args) => day25::main(args),
     };
 
-    println!("Answer: {}", answer);
+    if let Some(answer) = answer {
+        println!("Answer: {}", answer);
+    };
 }

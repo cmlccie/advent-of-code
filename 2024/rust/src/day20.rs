@@ -3,22 +3,26 @@ use cached::proc_macro::cached;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use strum::IntoEnumIterator;
 
 /*-------------------------------------------------------------------------------------------------
   Day 20: Race Condition
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
-    count_cheats_that_save_time(&map, 2, 100).to_string()
+    let cheat_count = count_cheats_that_save_time(&map, 2, 100);
+
+    Some(cheat_count.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let map = parse_input_file(input);
 
-    count_cheats_that_save_time(&map, 20, 100).to_string()
+    let cheat_count = count_cheats_that_save_time(&map, 20, 100);
+
+    Some(cheat_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -168,6 +172,24 @@ struct Cheat {
     start: MapIndex,
     end: MapIndex,
     saves: Time,
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 20: Race Condition")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------

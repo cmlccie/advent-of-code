@@ -1,12 +1,48 @@
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 4: Ceres Search
 -------------------------------------------------------------------------------------------------*/
 
-use std::fs::read_to_string;
-use std::path::Path;
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let word = Word::new("XMAS");
+
+    let puzzle: Vec<Vec<char>> = read_to_string(input)
+        .unwrap()
+        .lines()
+        .map(|line| line.chars().collect())
+        .collect();
+    let word_search = WordSearch::new(puzzle);
+
+    let xmas_count = WordSearchIterator::new(&word_search)
+        .filter(|(letter, _)| *letter == 'X')
+        .map(|(_, start)| word_search.find_word(&start, &word))
+        .sum::<i64>();
+
+    Some(xmas_count.to_string())
+}
+
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+    let word = Xmas::new();
+
+    let puzzle: Vec<Vec<char>> = read_to_string(input)
+        .unwrap()
+        .lines()
+        .map(|line| line.chars().collect())
+        .collect();
+    let word_search = WordSearch::new(puzzle);
+
+    let xmas_count = WordSearchIterator::new(&word_search)
+        .filter(|(letter, _)| *letter == 'A')
+        .filter_map(|(_, start)| word_search.find_x_mas(&start, &word))
+        .sum::<i64>();
+
+    Some(xmas_count.to_string())
+}
 
 /*--------------------------------------------------------------------------------------
-  Core Types
+  Core
 --------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------------------
@@ -112,27 +148,6 @@ impl Iterator for WordSearchIterator<'_> {
     }
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    let word = Word::new("XMAS");
-
-    let puzzle: Vec<Vec<char>> = read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect();
-    let word_search = WordSearch::new(puzzle);
-
-    WordSearchIterator::new(&word_search)
-        .filter(|(letter, _)| *letter == 'X')
-        .map(|(_, start)| word_search.find_word(&start, &word))
-        .sum::<i64>()
-        .to_string()
-}
-
 /*-----------------------------------------------------------------------------
   Word
 -----------------------------------------------------------------------------*/
@@ -201,27 +216,6 @@ impl WordSearch {
     }
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
-    let word = Xmas::new();
-
-    let puzzle: Vec<Vec<char>> = read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect();
-    let word_search = WordSearch::new(puzzle);
-
-    WordSearchIterator::new(&word_search)
-        .filter(|(letter, _)| *letter == 'A')
-        .filter_map(|(_, start)| word_search.find_x_mas(&start, &word))
-        .sum::<i64>()
-        .to_string()
-}
-
 /*-----------------------------------------------------------------------------
   Xmas Word
 -----------------------------------------------------------------------------*/
@@ -266,6 +260,24 @@ impl WordSearch {
             ['S', 'S', 'A', 'M', 'M'] => Some(1),
             _ => None,
         }
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 4: Ceres Search")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

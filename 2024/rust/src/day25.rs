@@ -1,6 +1,6 @@
 use core::panic;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use itertools::Itertools;
 
@@ -8,19 +8,16 @@ use itertools::Itertools;
   Day 25: Code Chronicle
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (locks, keys) = parse_input_file(input);
 
-    locks
+    let lock_key_pair_count = locks
         .iter()
         .cartesian_product(keys.iter())
         .filter(|(lock, key)| lock.iter().zip(key.iter()).all(|(l, k)| l + k <= 5))
-        .count()
-        .to_string()
-}
+        .count();
 
-pub fn part2<P: AsRef<Path> + ?Sized>(_input: &P) -> String {
-    unimplemented!()
+    Some(lock_key_pair_count.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
@@ -82,6 +79,22 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Locks, Keys) {
 }
 
 /*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 25: Code Chronicle")]
+pub enum Args {
+    Part1 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
   Tests
 -------------------------------------------------------------------------------------------------*/
 
@@ -118,12 +131,4 @@ mod tests {
             solution("../data/day25/input-part1-answer.txt")
         );
     }
-
-    // #[test]
-    // fn test_part2_solution() {
-    //     assert_eq!(
-    //         part2("../data/day25/input.txt"),
-    //         solution("../data/day25/input-part2-answer.txt")
-    //     );
-    // }
 }

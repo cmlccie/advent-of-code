@@ -1,47 +1,39 @@
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
 /*-------------------------------------------------------------------------------------------------
   Day 7: Bridge Repair
 -------------------------------------------------------------------------------------------------*/
 
-use std::fs::read_to_string;
-use std::path::Path;
-
-/*--------------------------------------------------------------------------------------
-  Part 1
---------------------------------------------------------------------------------------*/
-
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let calibration_equations = parse_input_file(input);
-    calibration_equations
+
+    let total_calibration_results = calibration_equations
         .iter()
         .filter(|(result, terms)| validate_equation(*result, terms, None, &[add, multiply]))
         .map(|(result, _)| result)
-        .sum::<i64>()
-        .to_string()
+        .sum::<i64>();
+
+    Some(total_calibration_results.to_string())
 }
 
-/*--------------------------------------------------------------------------------------
-  Part 2
---------------------------------------------------------------------------------------*/
-
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let calibration_equations = parse_input_file(input);
-    calibration_equations
+
+    let total_calibration_result = calibration_equations
         .iter()
         .filter(|(result, terms)| {
             validate_equation(*result, terms, None, &[add, multiply, concatenate])
         })
         .map(|(result, _)| result)
-        .sum::<i64>()
-        .to_string()
+        .sum::<i64>();
+
+    Some(total_calibration_result.to_string())
 }
 
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------------
-  Parse Input File
------------------------------------------------------------------------------*/
 
 fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<(i64, Vec<i64>)> {
     read_to_string(input)
@@ -55,10 +47,6 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<(i64, Vec<i64>)> 
         })
         .collect()
 }
-
-/*-----------------------------------------------------------------------------
-  Recursive Validation
------------------------------------------------------------------------------*/
 
 fn validate_equation(
     result: i64,
@@ -93,6 +81,24 @@ fn concatenate(acc: Option<i64>, term: i64) -> i64 {
     match acc {
         Some(acc) => (acc * 10u64.pow(term.ilog10() + 1) as i64) + term,
         None => term,
+    }
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 7: Bridge Repair")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
     }
 }
 

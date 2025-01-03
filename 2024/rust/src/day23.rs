@@ -1,29 +1,32 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::iter::once;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 /*-------------------------------------------------------------------------------------------------
   Day 23: LAN Party
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (_, connections) = parse_input_file(input);
     let node_map = build_node_graph(connections);
 
-    identify_sets_of_three_connected_nodes(&node_map)
+    let network_count = identify_sets_of_three_connected_nodes(&node_map)
         .iter()
         .filter(|nodes| nodes.iter().any(|node| node.starts_with("t")))
-        .count()
-        .to_string()
+        .count();
+
+    Some(network_count.to_string())
 }
 
-pub fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> String {
+fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     let (_, connections) = parse_input_file(input);
     let node_map = build_node_graph(connections);
 
-    find_largest_network(&node_map).join(",")
+    let largest_network = find_largest_network(&node_map);
+
+    Some(largest_network.join(","))
 }
 
 /*--------------------------------------------------------------------------------------
@@ -147,6 +150,24 @@ fn find_largest_network(node_map: &NodeMap) -> Network {
     }
 
     largest_network
+}
+
+/*-------------------------------------------------------------------------------------------------
+  CLI
+-------------------------------------------------------------------------------------------------*/
+
+#[derive(clap::Subcommand)]
+#[command(long_about = "Day 23: LAN Party")]
+pub enum Args {
+    Part1 { input: PathBuf },
+    Part2 { input: PathBuf },
+}
+
+pub fn main(args: Args) -> Option<String> {
+    match args {
+        Args::Part1 { input } => part1(&input),
+        Args::Part2 { input } => part2(&input),
+    }
 }
 
 /*-------------------------------------------------------------------------------------------------
