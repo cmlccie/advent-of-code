@@ -40,6 +40,10 @@ impl<T> Map<T> {
         self.rows * self.columns
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.rows == 0 || self.columns == 0
+    }
+
     pub fn iter(&self) -> MapIterator<T> {
         MapIterator::new(self)
     }

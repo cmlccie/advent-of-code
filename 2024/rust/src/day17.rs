@@ -301,13 +301,13 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::solution;
+    use crate::shared::answers::answer;
 
     #[test]
     fn test_example_part1() {
         assert_eq!(
             part1("../data/day17/example0.txt"),
-            solution("../data/day17/example0-part1-answer.txt")
+            answer("../data/day17/example0-part1-answer.txt")
         );
     }
 
@@ -316,7 +316,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day17/input.txt"),
-            solution("../data/day17/input-part1-answer.txt")
+            answer("../data/day17/input-part1-answer.txt")
         );
     }
 
@@ -324,7 +324,7 @@ mod tests {
     fn test_example_part2() {
         assert_eq!(
             part2("../data/day17/example1.txt"),
-            solution("../data/day17/example1-part2-answer.txt")
+            answer("../data/day17/example1-part2-answer.txt")
         );
     }
 
@@ -332,7 +332,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day17/input.txt"),
-            solution("../data/day17/input-part2-answer.txt")
+            answer("../data/day17/input-part2-answer.txt")
         );
     }
 }

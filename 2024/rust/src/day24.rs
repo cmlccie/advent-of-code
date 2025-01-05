@@ -428,13 +428,13 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::solution;
+    use crate::shared::answers::answer;
 
     #[test]
     fn test_example0_part1() {
         assert_eq!(
             part1("../data/day24/example0.txt"),
-            solution("../data/day24/example0-part1-answer.txt")
+            answer("../data/day24/example0-part1-answer.txt")
         );
     }
 
@@ -450,7 +450,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day24/input.txt"),
-            solution("../data/day24/input-part1-answer.txt")
+            answer("../data/day24/input-part1-answer.txt")
         );
     }
 
@@ -458,7 +458,7 @@ mod tests {
     fn test_part2_solution() {
         assert_eq!(
             part2("../data/day24/input.txt"),
-            solution("../data/day24/input-part2-answer.txt")
+            answer("../data/day24/input-part2-answer.txt")
         );
     }
 }

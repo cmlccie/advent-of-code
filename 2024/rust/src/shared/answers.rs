@@ -1,7 +1,9 @@
+use std::path::Path;
+
 /*-------------------------------------------------------------------------------------------------
-  Shared Modules
+  Answers
 -------------------------------------------------------------------------------------------------*/
 
-pub mod answers;
-pub mod logging;
-pub mod map;
+pub fn answer<P: AsRef<Path> + ?Sized>(file_path: &P) -> Option<String> {
+    Some(std::fs::read_to_string(file_path).ok()?.trim().to_string())
+}

@@ -103,7 +103,7 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::utils::solution;
+    use crate::shared::answers::answer;
 
     #[test]
     fn test_parse_input_file() {
@@ -120,7 +120,7 @@ mod tests {
     fn test_example_part1() {
         assert_eq!(
             part1("../data/day25/example.txt"),
-            solution("../data/day25/example-part1-answer.txt")
+            answer("../data/day25/example-part1-answer.txt")
         );
     }
 
@@ -128,7 +128,7 @@ mod tests {
     fn test_part1_solution() {
         assert_eq!(
             part1("../data/day25/input.txt"),
-            solution("../data/day25/input-part1-answer.txt")
+            answer("../data/day25/input-part1-answer.txt")
         );
     }
 }
