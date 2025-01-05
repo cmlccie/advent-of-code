@@ -46,3 +46,6 @@ build-2024: 2024/aoc
 
 target/release/aoc24: $(AOC_2024_SOURCE_FILES)
 	cargo build --package aoc24 --release
+
+bench-2024:
+	cargo bench --package aoc24 -- --output-format quiet

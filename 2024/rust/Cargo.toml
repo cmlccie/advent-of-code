@@ -16,3 +16,17 @@ nalgebra = "0.33.2"
 regex = "1.11.1"
 stderrlog = "0.6.0"
 strum = { version = "0.26.3", features = ["derive"] }
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
+[lib]
+bench = false
+
+[[bin]]
+name = "aoc24"
+bench = false
+
+[[bench]]
+name = "solutions"
+harness = false
