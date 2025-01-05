@@ -1,13 +1,13 @@
+use crate::shared::inputs::get_input;
 use std::collections::HashSet;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 6: Guard Gallivant
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let map = parse_input(input);
 
     let start_position = find_guard_start_position(&map);
     let mut guard = Guard::new(start_position, Direction::North);
@@ -20,8 +20,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(visited_positions.len().to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let mut map = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let mut map = parse_input(input);
 
     let start_position = find_guard_start_position(&map);
     let mut guard = Guard::new(start_position, Direction::North);
@@ -58,12 +58,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map {
-    let map: Vec<Vec<char>> = read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect();
+fn parse_input(input: &str) -> Map {
+    let map: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
 
     Map::new(map)
 }
@@ -246,8 +242,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -258,29 +254,29 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day6/example.txt"),
-            answer("../data/day6/example-part1-answer.txt")
+            part1(&get_input("../data/day6/example.txt")),
+            get_answer("../data/day6/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day6/example.txt"),
-            answer("../data/day6/example-part2-answer.txt")
+            part2(&get_input("../data/day6/example.txt")),
+            get_answer("../data/day6/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day6/input.txt"),
-            answer("../data/day6/input-part1-answer.txt")
+            part1(&get_input("../data/day6/input.txt")),
+            get_answer("../data/day6/input-part1-answer.txt")
         );
     }
 
@@ -288,8 +284,8 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day6/input.txt"),
-            answer("../data/day6/input-part2-answer.txt")
+            part2(&get_input("../data/day6/input.txt")),
+            get_answer("../data/day6/input-part2-answer.txt")
         );
     }
 }

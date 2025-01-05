@@ -1,14 +1,14 @@
+use crate::shared::inputs::get_input;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 8: Resonant Collinearity
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let map = parse_input(input);
 
     let anti_nodes: HashSet<Coordinate> = get_antenna_pairs(&map.antennas)
         .iter()
@@ -19,8 +19,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(anti_nodes.len().to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let map = parse_input(input);
 
     let anti_nodes: HashSet<Coordinate> = get_antenna_pairs(&map.antennas)
         .iter()
@@ -43,14 +43,12 @@ type Antennas = HashMap<Frequency, Vec<Coordinate>>;
   Parse Input File
 -----------------------------------------------------------------------------*/
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map {
-    let map = read_to_string(input).unwrap();
-
-    let rows = map.lines().count() as i32;
-    let columns = map.lines().next().unwrap().chars().count() as i32;
+fn parse_input(input: &str) -> Map {
+    let rows = input.lines().count() as i32;
+    let columns = input.lines().next().unwrap().chars().count() as i32;
 
     let mut antennas = Antennas::new();
-    for (row, line) in map.lines().enumerate() {
+    for (row, line) in input.lines().enumerate() {
         for (column, frequency) in line.chars().enumerate() {
             if frequency != '.' {
                 antennas
@@ -156,8 +154,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -168,37 +166,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day8/example.txt"),
-            answer("../data/day8/example-part1-answer.txt")
+            part1(&get_input("../data/day8/example.txt")),
+            get_answer("../data/day8/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day8/example.txt"),
-            answer("../data/day8/example-part2-answer.txt")
+            part2(&get_input("../data/day8/example.txt")),
+            get_answer("../data/day8/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day8/input.txt"),
-            answer("../data/day8/input-part1-answer.txt")
+            part1(&get_input("../data/day8/input.txt")),
+            get_answer("../data/day8/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day8/input.txt"),
-            answer("../data/day8/input-part2-answer.txt")
+            part2(&get_input("../data/day8/input.txt")),
+            get_answer("../data/day8/input-part2-answer.txt")
         );
     }
 }

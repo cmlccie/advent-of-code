@@ -1,15 +1,15 @@
+use crate::shared::inputs::get_input;
 use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
 use std::iter::once;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 /*-------------------------------------------------------------------------------------------------
   Day 23: LAN Party
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (_, connections) = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let (_, connections) = parse_input(input);
     let node_map = build_node_graph(connections);
 
     let network_count = identify_sets_of_three_connected_nodes(&node_map)
@@ -20,8 +20,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(network_count.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (_, connections) = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let (_, connections) = parse_input(input);
     let node_map = build_node_graph(connections);
 
     let largest_network = find_largest_network(&node_map);
@@ -40,11 +40,10 @@ type Connection = (Node, Node);
 type NodeSet = HashSet<Node>;
 type NodeMap = HashMap<Node, NodeSet>;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (NodeSet, Vec<Connection>) {
+fn parse_input(input: &str) -> (NodeSet, Vec<Connection>) {
     let mut nodes = NodeSet::new();
 
-    let connections: Vec<Connection> = read_to_string(input)
-        .unwrap()
+    let connections: Vec<Connection> = input
         .lines()
         .map(|line| {
             let mut split = line.split('-');
@@ -165,8 +164,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -177,29 +176,29 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            part1("../data/day23/example.txt"),
-            answer("../data/day23/example-part1-answer.txt")
+            part1(&get_input("../data/day23/example.txt")),
+            get_answer("../data/day23/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day23/input.txt"),
-            answer("../data/day23/input-part1-answer.txt")
+            part1(&get_input("../data/day23/input.txt")),
+            get_answer("../data/day23/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_part2() {
         assert_eq!(
-            part2("../data/day23/example.txt"),
-            answer("../data/day23/example-part2-answer.txt")
+            part2(&get_input("../data/day23/example.txt")),
+            get_answer("../data/day23/example-part2-answer.txt")
         );
     }
 
@@ -207,8 +206,8 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day23/input.txt"),
-            answer("../data/day23/input-part2-answer.txt")
+            part2(&get_input("../data/day23/input.txt")),
+            get_answer("../data/day23/input-part2-answer.txt")
         );
     }
 }

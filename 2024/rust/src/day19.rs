@@ -1,14 +1,14 @@
+use crate::shared::inputs::get_input;
 use cached::proc_macro::cached;
 use regex::Regex;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 19: Linen Layout
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (patterns, designs) = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let (patterns, designs) = parse_input(input);
 
     let pattern_regex = Regex::new(format!("^({})+$", patterns.join("|")).as_str()).unwrap();
 
@@ -20,8 +20,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(possible_designs_count.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (patterns, designs) = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let (patterns, designs) = parse_input(input);
 
     let all_possible_design_combinations_count = designs
         .into_iter()
@@ -41,9 +41,7 @@ type Design = String;
 type Designs = Vec<Design>;
 type DesignCount = u64;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Patterns, Designs) {
-    let input = read_to_string(input).unwrap();
-
+fn parse_input(input: &str) -> (Patterns, Designs) {
     let patterns = input
         .lines()
         .next()
@@ -90,8 +88,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -102,21 +100,21 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            part1("../data/day19/example.txt"),
-            answer("../data/day19/example-part1-answer.txt")
+            part1(&get_input("../data/day19/example.txt")),
+            get_answer("../data/day19/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day19/input.txt"),
-            answer("../data/day19/input-part1-answer.txt")
+            part1(&get_input("../data/day19/input.txt")),
+            get_answer("../data/day19/input-part1-answer.txt")
         );
     }
 
@@ -124,8 +122,8 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day19/input.txt"),
-            answer("../data/day19/input-part2-answer.txt")
+            part2(&get_input("../data/day19/input.txt")),
+            get_answer("../data/day19/input-part2-answer.txt")
         );
     }
 }

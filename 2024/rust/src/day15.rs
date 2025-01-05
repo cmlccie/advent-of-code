@@ -1,14 +1,14 @@
+use crate::shared::inputs::get_input;
 use crate::shared::map::{Map, MapIndex, Offset};
 use std::fmt::{Display, Formatter};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 15: Warehouse Woes
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (mut warehouse, directions) = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let (mut warehouse, directions) = parse_input(input);
 
     let robot_starting_position = warehouse
         .find(|item| matches!(item, WarehouseItem::Robot))
@@ -25,8 +25,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(gps_coordinate_sum.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (warehouse, directions) = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let (warehouse, directions) = parse_input(input);
     let mut warehouse = modify_warehouse(&warehouse);
     log::debug!("Starting Warehouse:\n{}", warehouse);
 
@@ -52,9 +52,7 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 
 type Position = MapIndex;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Map<WarehouseItem>, Vec<Direction>) {
-    let input = read_to_string(input).unwrap();
-
+fn parse_input(input: &str) -> (Map<WarehouseItem>, Vec<Direction>) {
     let blank_line_index = input.lines().position(|line| line.is_empty()).unwrap();
 
     let warehouse: Map<WarehouseItem> = input
@@ -379,8 +377,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -391,37 +389,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            part1("../data/day15/example0.txt"),
-            answer("../data/day15/example0-part1-answer.txt")
+            part1(&get_input("../data/day15/example0.txt")),
+            get_answer("../data/day15/example0-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day15/input.txt"),
-            answer("../data/day15/input-part1-answer.txt")
+            part1(&get_input("../data/day15/input.txt")),
+            get_answer("../data/day15/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_part2() {
         assert_eq!(
-            part2("../data/day15/example0.txt"),
-            answer("../data/day15/example0-part2-answer.txt")
+            part2(&get_input("../data/day15/example0.txt")),
+            get_answer("../data/day15/example0-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day15/input.txt"),
-            answer("../data/day15/input-part2-answer.txt")
+            part2(&get_input("../data/day15/input.txt")),
+            get_answer("../data/day15/input-part2-answer.txt")
         );
     }
 }

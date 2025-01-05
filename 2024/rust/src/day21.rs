@@ -1,15 +1,15 @@
+use crate::shared::inputs::get_input;
 use cached::proc_macro::cached;
 use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 /*-------------------------------------------------------------------------------------------------
   Day 21: Keypad Conundrum
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let codes = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let codes = parse_input(input);
 
     let numpad = Box::new(Keypad::new(KeypadType::NumPad, "Robot0", None));
     let dpad1 = Box::new(Keypad::new(KeypadType::DPad, "Robot1", Some(numpad)));
@@ -24,8 +24,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(code_complexity.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let codes = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let codes = parse_input(input);
 
     let mut previous_keypad = None;
     for n in (0..25).rev() {
@@ -64,12 +64,8 @@ type Moves = Vec<Move>;
 type Complexity = usize;
 type MoveCount = Complexity;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Code> {
-    read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.to_string())
-        .collect()
+fn parse_input(input: &str) -> Vec<Code> {
+    input.lines().map(|line| line.to_string()).collect()
 }
 
 fn calculate_complexity(code: &str, move_count: MoveCount) -> Complexity {
@@ -346,8 +342,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -358,29 +354,29 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_part1_example() {
         assert_eq!(
-            part1("../data/day21/example.txt"),
-            answer("../data/day21/example-part1-answer.txt")
+            part1(&get_input("../data/day21/example.txt")),
+            get_answer("../data/day21/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day21/input.txt"),
-            answer("../data/day21/input-part1-answer.txt")
+            part1(&get_input("../data/day21/input.txt")),
+            get_answer("../data/day21/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day21/input.txt"),
-            answer("../data/day21/input-part2-answer.txt")
+            part2(&get_input("../data/day21/input.txt")),
+            get_answer("../data/day21/input-part2-answer.txt")
         );
     }
 }

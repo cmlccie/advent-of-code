@@ -1,19 +1,17 @@
+use crate::shared::inputs::get_input;
 use regex::Regex;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 /*-------------------------------------------------------------------------------------------------
   Day 3: Mull It Over
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let input_text = read_to_string(input).unwrap();
-
+pub fn part1(input: &str) -> Option<String> {
     let mul_regex = get_mul_regex();
 
     let multiplication_sum = mul_regex
-        .captures_iter(&input_text)
+        .captures_iter(input)
         .map(|cap| {
             let a = cap[1].parse::<i64>().unwrap();
             let b = cap[2].parse::<i64>().unwrap();
@@ -24,10 +22,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(multiplication_sum.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let input_text = read_to_string(input).unwrap();
-
-    let enabled_sections: Vec<_> = input_text
+pub fn part2(input: &str) -> Option<String> {
+    let enabled_sections: Vec<_> = input
         .split("do()")
         .map(|section| section.split("don't()").next())
         .collect();
@@ -71,8 +67,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -83,37 +79,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day3/example-part1.txt"),
-            answer("../data/day3/example-part1-answer.txt")
+            part1(&get_input("../data/day3/example-part1.txt")),
+            get_answer("../data/day3/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day3/example-part2.txt"),
-            answer("../data/day3/example-part2-answer.txt")
+            part2(&get_input("../data/day3/example-part2.txt")),
+            get_answer("../data/day3/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day3/input.txt"),
-            answer("../data/day3/input-part1-answer.txt")
+            part1(&get_input("../data/day3/input.txt")),
+            get_answer("../data/day3/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day3/input.txt"),
-            answer("../data/day3/input-part2-answer.txt")
+            part2(&get_input("../data/day3/input.txt")),
+            get_answer("../data/day3/input-part2-answer.txt")
         );
     }
 }

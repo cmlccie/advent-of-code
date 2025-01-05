@@ -1,6 +1,6 @@
+use crate::shared::inputs::get_input;
 use regex::Regex;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use itertools::Itertools;
 
@@ -8,16 +8,16 @@ use itertools::Itertools;
   Day 17: Chronospatial Computer
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (registers, program) = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let (registers, program) = parse_input(input);
     let mut computer = Computer::new(registers, &program);
     computer.run();
 
     Some(computer.format_output())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (registers, program) = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let (registers, program) = parse_input(input);
 
     let new_registers = [0, registers[1], registers[2]];
     let register_a = register_a_solver(new_registers, &program, 1).unwrap();
@@ -38,9 +38,7 @@ type Pointer = usize;
 type Program = Vec<u8>;
 type Output = Vec<u8>;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> ([RegisterValue; 3], Program) {
-    let input = read_to_string(input).unwrap();
-
+fn parse_input(input: &str) -> ([RegisterValue; 3], Program) {
     let input_regex = Regex::new(
         r#"(?x)
         Register\sA:\s(?P<register_a>\d+)\n
@@ -52,7 +50,7 @@ fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> ([RegisterValue; 3], 
     )
     .unwrap();
 
-    let parsed_input = input_regex.captures(&input).unwrap();
+    let parsed_input = input_regex.captures(input).unwrap();
 
     let registers = [
         parsed_input["register_a"].parse().unwrap(),
@@ -289,8 +287,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -301,13 +299,13 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            part1("../data/day17/example0.txt"),
-            answer("../data/day17/example0-part1-answer.txt")
+            part1(&get_input("../data/day17/example0.txt")),
+            get_answer("../data/day17/example0-part1-answer.txt")
         );
     }
 
@@ -315,24 +313,24 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day17/input.txt"),
-            answer("../data/day17/input-part1-answer.txt")
+            part1(&get_input("../data/day17/input.txt")),
+            get_answer("../data/day17/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_part2() {
         assert_eq!(
-            part2("../data/day17/example1.txt"),
-            answer("../data/day17/example1-part2-answer.txt")
+            part2(&get_input("../data/day17/example1.txt")),
+            get_answer("../data/day17/example1-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day17/input.txt"),
-            answer("../data/day17/input-part2-answer.txt")
+            part2(&get_input("../data/day17/input.txt")),
+            get_answer("../data/day17/input-part2-answer.txt")
         );
     }
 }

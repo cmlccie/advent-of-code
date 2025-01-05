@@ -1,23 +1,23 @@
+use crate::shared::inputs::get_input;
 use crate::shared::map::{Direction4C, Map, MapIndex};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::fs::read_to_string;
 use std::iter::once;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 16: Reindeer Maze
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let (best_score, _) = race(&map);
 
     Some(best_score.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let (_, best_paths_tile_count) = race(&map);
 
     Some(best_paths_tile_count.to_string())
@@ -30,8 +30,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 type Score = u64;
 type TileCount = u64;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map<char> {
-    read_to_string(input).unwrap().as_str().into()
+fn parse_input(input: &str) -> Map<char> {
+    input.into()
 }
 
 // Use Dijkstra's algorithm to find the shortest paths from the start to the goal
@@ -182,8 +182,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -194,53 +194,53 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example0_part1() {
         assert_eq!(
-            part1("../data/day16/example0.txt"),
-            answer("../data/day16/example0-part1-answer.txt")
+            part1(&get_input("../data/day16/example0.txt")),
+            get_answer("../data/day16/example0-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example1_part1() {
         assert_eq!(
-            part1("../data/day16/example1.txt"),
-            answer("../data/day16/example1-part1-answer.txt")
+            part1(&get_input("../data/day16/example1.txt")),
+            get_answer("../data/day16/example1-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day16/input.txt"),
-            answer("../data/day16/input-part1-answer.txt")
+            part1(&get_input("../data/day16/input.txt")),
+            get_answer("../data/day16/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example0_part2() {
         assert_eq!(
-            part2("../data/day16/example0.txt"),
-            answer("../data/day16/example0-part2-answer.txt")
+            part2(&get_input("../data/day16/example0.txt")),
+            get_answer("../data/day16/example0-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_example1_part2() {
         assert_eq!(
-            part2("../data/day16/example1.txt"),
-            answer("../data/day16/example1-part2-answer.txt")
+            part2(&get_input("../data/day16/example1.txt")),
+            get_answer("../data/day16/example1-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day16/input.txt"),
-            answer("../data/day16/input-part2-answer.txt")
+            part2(&get_input("../data/day16/input.txt")),
+            get_answer("../data/day16/input-part2-answer.txt")
         );
     }
 }

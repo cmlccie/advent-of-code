@@ -1,21 +1,21 @@
+use crate::shared::inputs::get_input;
 use std::collections::HashSet;
-use std::fs::read_to_string;
 use std::hash::Hash;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 10: Hoof It
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let (_, peak_count) = map_trails(&map);
 
     Some(peak_count.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let (trail_count, _) = map_trails(&map);
 
     Some(trail_count.to_string())
@@ -25,9 +25,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map {
-    let map: Vec<Vec<_>> = read_to_string(input)
-        .unwrap()
+fn parse_input(input: &str) -> Map {
+    let map: Vec<Vec<_>> = input
         .lines()
         .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
         .collect();
@@ -230,8 +229,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -242,37 +241,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day10/example.txt"),
-            answer("../data/day10/example-part1-answer.txt")
+            part1(&get_input("../data/day10/example.txt")),
+            get_answer("../data/day10/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day10/example.txt"),
-            answer("../data/day10/example-part2-answer.txt")
+            part2(&get_input("../data/day10/example.txt")),
+            get_answer("../data/day10/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day10/input.txt"),
-            answer("../data/day10/input-part1-answer.txt")
+            part1(&get_input("../data/day10/input.txt")),
+            get_answer("../data/day10/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day10/input.txt"),
-            answer("../data/day10/input-part2-answer.txt")
+            part2(&get_input("../data/day10/input.txt")),
+            get_answer("../data/day10/input-part2-answer.txt")
         );
     }
 }

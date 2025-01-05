@@ -1,27 +1,27 @@
+use crate::shared::inputs::get_input;
 use core::panic;
 use itertools::Itertools;
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::fmt::{self, Display, Formatter};
-use std::fs::read_to_string;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 /*-------------------------------------------------------------------------------------------------
   Day 24: Crossed Wires
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (mut wires, gates) = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let (mut wires, gates) = parse_input(input);
     process_gates(&mut wires, &gates);
     let z_value = combine_bits(&wires, "z");
 
     Some(z_value.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (_, gates) = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let (_, gates) = parse_input(input);
     let crossed_wires = find_crossed_wires(&gates);
 
     let crossed_wires: BTreeSet<Wire> = crossed_wires.iter().flatten().cloned().collect();
@@ -65,9 +65,7 @@ enum GateRole {
     COr,
 }
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Wires, Gates) {
-    let input = read_to_string(input).unwrap();
-
+fn parse_input(input: &str) -> (Wires, Gates) {
     let blank_line_index = input.lines().position(|line| line.is_empty()).unwrap();
 
     let wires: Wires = input
@@ -416,8 +414,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -428,13 +426,13 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example0_part1() {
         assert_eq!(
-            part1("../data/day24/example0.txt"),
-            answer("../data/day24/example0-part1-answer.txt")
+            part1(&get_input("../data/day24/example0.txt")),
+            get_answer("../data/day24/example0-part1-answer.txt")
         );
     }
 
@@ -449,16 +447,16 @@ mod tests {
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day24/input.txt"),
-            answer("../data/day24/input-part1-answer.txt")
+            part1(&get_input("../data/day24/input.txt")),
+            get_answer("../data/day24/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day24/input.txt"),
-            answer("../data/day24/input-part2-answer.txt")
+            part2(&get_input("../data/day24/input.txt")),
+            get_answer("../data/day24/input-part2-answer.txt")
         );
     }
 }

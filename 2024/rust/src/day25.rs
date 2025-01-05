@@ -1,15 +1,14 @@
+use crate::shared::inputs::get_input;
 use core::panic;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
-
 use itertools::Itertools;
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 25: Code Chronicle
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let (locks, keys) = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let (locks, keys) = parse_input(input);
 
     let lock_key_pair_count = locks
         .iter()
@@ -31,8 +30,7 @@ type Locks = Vec<Lock>;
 type Key = Schematic;
 type Keys = Vec<Key>;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> (Locks, Keys) {
-    let input = read_to_string(input).unwrap();
+fn parse_input(input: &str) -> (Locks, Keys) {
     let mut locks = Vec::new();
     let mut keys = Vec::new();
 
@@ -90,7 +88,7 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
     }
 }
 
@@ -103,11 +101,12 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_parse_input_file() {
-        let (locks, keys) = parse_input_file("../data/day25/example.txt");
+        let input = get_input("../data/day25/example.txt");
+        let (locks, keys) = parse_input(&input);
 
         assert_eq!(locks, vec![[0, 5, 3, 4, 3], [1, 2, 0, 5, 3]]);
         assert_eq!(
@@ -119,16 +118,16 @@ mod tests {
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            part1("../data/day25/example.txt"),
-            answer("../data/day25/example-part1-answer.txt")
+            part1(&get_input("../data/day25/example.txt")),
+            get_answer("../data/day25/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day25/input.txt"),
-            answer("../data/day25/input-part1-answer.txt")
+            part1(&get_input("../data/day25/input.txt")),
+            get_answer("../data/day25/input-part1-answer.txt")
         );
     }
 }

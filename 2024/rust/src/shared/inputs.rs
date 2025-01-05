@@ -1,9 +1,9 @@
-use std::path::Path;
+use std::fs::read_to_string;
 
 /*-------------------------------------------------------------------------------------------------
-  Answers
+  Inputs
 -------------------------------------------------------------------------------------------------*/
 
-pub fn get_answer<P: AsRef<Path> + ?Sized>(file_path: &P) -> Option<String> {
-    Some(std::fs::read_to_string(file_path).ok()?.trim().to_string())
+pub fn get_input<P: AsRef<std::path::Path> + ?Sized>(file_path: &P) -> String {
+    read_to_string(file_path).unwrap()
 }

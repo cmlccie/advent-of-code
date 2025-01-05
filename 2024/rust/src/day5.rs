@@ -1,13 +1,13 @@
+use crate::shared::inputs::get_input;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 5: Print Queue
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+pub fn part1(input: &str) -> Option<String> {
     let (ordering_rules, updates) = parse_input(input);
 
     let middle_page_sum = updates
@@ -19,7 +19,7 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(middle_page_sum.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+pub fn part2(input: &str) -> Option<String> {
     let (ordering_rules, updates) = parse_input(input);
 
     let middle_page_sum = updates
@@ -37,9 +37,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 
 type Updates = Vec<u8>;
 
-fn parse_input<P: AsRef<Path> + ?Sized>(input: &P) -> (OrderingRules, Vec<Updates>) {
-    let contents = read_to_string(input).unwrap();
-    let mut lines = contents.lines();
+fn parse_input(input: &str) -> (OrderingRules, Vec<Updates>) {
+    let mut lines = input.lines();
 
     let mut ordering_rules = OrderingRules::new();
     for line in lines.by_ref() {
@@ -129,8 +128,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -141,37 +140,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day5/example.txt"),
-            answer("../data/day5/example-part1-answer.txt")
+            part1(&get_input("../data/day5/example.txt")),
+            get_answer("../data/day5/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day5/example.txt"),
-            answer("../data/day5/example-part2-answer.txt")
+            part2(&get_input("../data/day5/example.txt")),
+            get_answer("../data/day5/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day5/input.txt"),
-            answer("../data/day5/input-part1-answer.txt")
+            part1(&get_input("../data/day5/input.txt")),
+            get_answer("../data/day5/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day5/input.txt"),
-            answer("../data/day5/input-part2-answer.txt")
+            part2(&get_input("../data/day5/input.txt")),
+            get_answer("../data/day5/input-part2-answer.txt")
         );
     }
 }

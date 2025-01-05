@@ -1,14 +1,14 @@
+use crate::shared::inputs::get_input;
 use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::vec;
 
 /*-------------------------------------------------------------------------------------------------
   Day 22: Monkey Market
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let secrets = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let secrets = parse_input(input);
 
     let secrets_sum: Answer = secrets
         .into_iter()
@@ -24,8 +24,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(secrets_sum.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let secrets = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let secrets = parse_input(input);
     let max_bananas = find_maximum_bananas(secrets);
 
     Some(max_bananas.to_string())
@@ -43,12 +43,8 @@ type PriceChange = Price;
 type Sequence = [PriceChange; 4];
 type Answer = u64;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Secrets {
-    read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.parse().unwrap())
-        .collect()
+fn parse_input(input: &str) -> Secrets {
+    input.lines().map(|line| line.parse().unwrap()).collect()
 }
 
 fn evolve_secret(secret: Secret) -> Secret {
@@ -108,8 +104,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -120,29 +116,29 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example0_part1() {
         assert_eq!(
-            part1("../data/day22/example0.txt"),
-            answer("../data/day22/example0-part1-answer.txt")
+            part1(&get_input("../data/day22/example0.txt")),
+            get_answer("../data/day22/example0-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day22/input.txt"),
-            answer("../data/day22/input-part1-answer.txt")
+            part1(&get_input("../data/day22/input.txt")),
+            get_answer("../data/day22/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example1_part2() {
         assert_eq!(
-            part2("../data/day22/example1.txt"),
-            answer("../data/day22/example1-part2-answer.txt")
+            part2(&get_input("../data/day22/example1.txt")),
+            get_answer("../data/day22/example1-part2-answer.txt")
         );
     }
 
@@ -150,8 +146,8 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day22/input.txt"),
-            answer("../data/day22/input-part2-answer.txt")
+            part2(&get_input("../data/day22/input.txt")),
+            get_answer("../data/day22/input-part2-answer.txt")
         );
     }
 }

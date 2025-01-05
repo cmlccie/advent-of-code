@@ -1,15 +1,15 @@
+use crate::shared::inputs::get_input;
 use crate::shared::map::{Direction4C, Map, MapIndex};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 18: RAM Run
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let corrupted_memory_positions = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let corrupted_memory_positions = parse_input(input);
     let mut map = Map::new(70 + 1, 70 + 1, '.');
     for position in corrupted_memory_positions.iter().take(1024) {
         map.set(*position, '#');
@@ -20,8 +20,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     number_of_steps_to_exit.map(|steps| steps.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let corrupted_memory_positions = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let corrupted_memory_positions = parse_input(input);
     let mut map = Map::new(70 + 1, 70 + 1, '.');
 
     for position in corrupted_memory_positions.iter().take(1024) {
@@ -48,9 +48,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 
 type Steps = u64;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<MapIndex> {
-    read_to_string(input)
-        .unwrap()
+fn parse_input(input: &str) -> Vec<MapIndex> {
+    input
         .lines()
         .map(|line| {
             let mut split = line.split(',');
@@ -160,8 +159,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -170,8 +169,8 @@ pub fn main(args: Args) -> Option<String> {
 -------------------------------------------------------------------------------------------------*/
 
 #[cfg(test)]
-fn example_part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let corrupted_memory_positions = parse_input_file(input);
+fn example_part1(input: &str) -> Option<String> {
+    let corrupted_memory_positions = parse_input(input);
     let mut map = Map::new(6 + 1, 6 + 1, '.');
     for position in corrupted_memory_positions.iter().take(12) {
         map.set(*position, '#');
@@ -185,21 +184,21 @@ fn example_part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            example_part1("../data/day18/example.txt"),
-            answer("../data/day18/example-part1-answer.txt")
+            example_part1(&get_input("../data/day18/example.txt")),
+            get_answer("../data/day18/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day18/input.txt"),
-            answer("../data/day18/input-part1-answer.txt")
+            part1(&get_input("../data/day18/input.txt")),
+            get_answer("../data/day18/input-part1-answer.txt")
         );
     }
 
@@ -207,8 +206,8 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day18/input.txt"),
-            answer("../data/day18/input-part2-answer.txt")
+            part2(&get_input("../data/day18/input.txt")),
+            get_answer("../data/day18/input-part2-answer.txt")
         );
     }
 }

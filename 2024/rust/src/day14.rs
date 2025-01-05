@@ -1,15 +1,15 @@
+use crate::shared::inputs::get_input;
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 14: Restroom Redoubt
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+pub fn part1(input: &str) -> Option<String> {
     let lobby = Lobby::new(101, 103);
-    let mut robots = parse_input_file(input);
+    let mut robots = parse_input(input);
 
     for _ in 0..100 {
         robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
@@ -20,9 +20,9 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(safety_factor.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+pub fn part2(input: &str) -> Option<String> {
     let lobby = Lobby::new(101, 103);
-    let mut robots = parse_input_file(input);
+    let mut robots = parse_input(input);
 
     let mut first_christmas_tree: usize = 0;
 
@@ -48,14 +48,12 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 type Position = (isize, isize);
 type Velocity = (isize, isize);
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<Robot> {
-    let input = read_to_string(input).unwrap();
-
+fn parse_input(input: &str) -> Vec<Robot> {
     let robot_regex =
         Regex::new(r#"p=(?P<px>\d+),(?P<py>\d+)\sv=(?P<vx>-?\d+),(?P<vy>-?\d+)"#).unwrap();
 
     robot_regex
-        .captures_iter(&input)
+        .captures_iter(input)
         .map(|cap| {
             Robot::new(
                 (cap["px"].parse().unwrap(), cap["py"].parse().unwrap()),
@@ -205,8 +203,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -217,7 +215,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     // #[test]
     // fn test_example_part1() {
@@ -230,16 +228,16 @@ mod tests {
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day14/input.txt"),
-            answer("../data/day14/input-part1-answer.txt")
+            part1(&get_input("../data/day14/input.txt")),
+            get_answer("../data/day14/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day14/input.txt"),
-            answer("../data/day14/input-part2-answer.txt")
+            part2(&get_input("../data/day14/input.txt")),
+            get_answer("../data/day14/input-part2-answer.txt")
         );
     }
 }

@@ -1,24 +1,24 @@
+use crate::shared::inputs::get_input;
 use crate::shared::map::{Direction4C, Map, MapIndex, Offset};
 use cached::proc_macro::cached;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use strum::IntoEnumIterator;
 
 /*-------------------------------------------------------------------------------------------------
   Day 20: Race Condition
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let cheat_count = count_cheats_that_save_time(&map, 2, 100);
 
     Some(cheat_count.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let map = parse_input(input);
 
     let cheat_count = count_cheats_that_save_time(&map, 20, 100);
 
@@ -32,8 +32,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
 type Time = usize;
 type CheatCount = usize;
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map<char> {
-    read_to_string(input).unwrap().as_str().into()
+fn parse_input(input: &str) -> Map<char> {
+    input.into()
 }
 
 fn count_cheats_that_save_time(
@@ -187,8 +187,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -199,14 +199,14 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day20/input.txt"),
-            answer("../data/day20/input-part1-answer.txt")
+            part1(&get_input("../data/day20/input.txt")),
+            get_answer("../data/day20/input-part1-answer.txt")
         );
     }
 
@@ -214,8 +214,8 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day20/input.txt"),
-            answer("../data/day20/input-part2-answer.txt")
+            part2(&get_input("../data/day20/input.txt")),
+            get_answer("../data/day20/input-part2-answer.txt")
         );
     }
 }

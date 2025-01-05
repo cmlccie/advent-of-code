@@ -1,15 +1,14 @@
+use crate::shared::inputs::get_input;
 use crate::shared::logging::log_if_error;
 use anyhow::{anyhow, Result};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 2: Red-Nosed Reports
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let safe_report_count = read_to_string(input)
-        .unwrap()
+pub fn part1(input: &str) -> Option<String> {
+    let safe_report_count = input
         .lines()
         .map(parse_line)
         .inspect(log_if_error)
@@ -24,9 +23,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(safe_report_count.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let updated_safe_report_count = read_to_string(input)
-        .unwrap()
+pub fn part2(input: &str) -> Option<String> {
+    let updated_safe_report_count = input
         .lines()
         .map(parse_line)
         .inspect(log_if_error)
@@ -117,8 +115,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -129,11 +127,11 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_parse_line() {
-        let file_contents = read_to_string("../data/day2/example.txt").unwrap();
+        let file_contents = get_input("../data/day2/example.txt");
         let mut parsed_lines = file_contents.lines().map(parse_line).filter_map(Result::ok);
 
         assert_eq!(parsed_lines.next().unwrap(), vec![7, 6, 4, 2, 1]);
@@ -148,32 +146,32 @@ mod tests {
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day2/example.txt"),
-            answer("../data/day2/example-part1-answer.txt")
+            part1(&get_input("../data/day2/example.txt")),
+            get_answer("../data/day2/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day2/example.txt"),
-            answer("../data/day2/example-part2-answer.txt")
+            part2(&get_input("../data/day2/example.txt")),
+            get_answer("../data/day2/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day2/input.txt"),
-            answer("../data/day2/input-part1-answer.txt")
+            part1(&get_input("../data/day2/input.txt")),
+            get_answer("../data/day2/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day2/input.txt"),
-            answer("../data/day2/input-part2-answer.txt")
+            part2(&get_input("../data/day2/input.txt")),
+            get_answer("../data/day2/input-part2-answer.txt")
         );
     }
 }

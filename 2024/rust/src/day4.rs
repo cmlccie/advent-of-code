@@ -1,18 +1,14 @@
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use crate::shared::inputs::get_input;
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 4: Ceres Search
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+pub fn part1(input: &str) -> Option<String> {
     let word = Word::new("XMAS");
 
-    let puzzle: Vec<Vec<char>> = read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect();
+    let puzzle: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
     let word_search = WordSearch::new(puzzle);
 
     let xmas_count = WordSearchIterator::new(&word_search)
@@ -23,14 +19,10 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(xmas_count.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
+pub fn part2(input: &str) -> Option<String> {
     let word = Xmas::new();
 
-    let puzzle: Vec<Vec<char>> = read_to_string(input)
-        .unwrap()
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect();
+    let puzzle: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
     let word_search = WordSearch::new(puzzle);
 
     let xmas_count = WordSearchIterator::new(&word_search)
@@ -276,8 +268,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -288,37 +280,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day4/example.txt"),
-            answer("../data/day4/example-part1-answer.txt")
+            part1(&get_input("../data/day4/example.txt")),
+            get_answer("../data/day4/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day4/example.txt"),
-            answer("../data/day4/example-part2-answer.txt")
+            part2(&get_input("../data/day4/example.txt")),
+            get_answer("../data/day4/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day4/input.txt"),
-            answer("../data/day4/input-part1-answer.txt")
+            part1(&get_input("../data/day4/input.txt")),
+            get_answer("../data/day4/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day4/input.txt"),
-            answer("../data/day4/input-part2-answer.txt")
+            part2(&get_input("../data/day4/input.txt")),
+            get_answer("../data/day4/input-part2-answer.txt")
         );
     }
 }

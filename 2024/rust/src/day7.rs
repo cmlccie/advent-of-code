@@ -1,12 +1,12 @@
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use crate::shared::inputs::get_input;
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 7: Bridge Repair
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let calibration_equations = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let calibration_equations = parse_input(input);
 
     let total_calibration_results = calibration_equations
         .iter()
@@ -17,8 +17,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(total_calibration_results.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let calibration_equations = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let calibration_equations = parse_input(input);
 
     let total_calibration_result = calibration_equations
         .iter()
@@ -35,9 +35,8 @@ fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Vec<(i64, Vec<i64>)> {
-    read_to_string(input)
-        .unwrap()
+fn parse_input(input: &str) -> Vec<(i64, Vec<i64>)> {
+    input
         .lines()
         .map(|line| {
             let mut split = line.split(&[':', ' ']);
@@ -97,8 +96,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -109,37 +108,37 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example_solution_part1() {
         assert_eq!(
-            part1("../data/day7/example.txt"),
-            answer("../data/day7/example-part1-answer.txt")
+            part1(&get_input("../data/day7/example.txt")),
+            get_answer("../data/day7/example-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example_solution_part2() {
         assert_eq!(
-            part2("../data/day7/example.txt"),
-            answer("../data/day7/example-part2-answer.txt")
+            part2(&get_input("../data/day7/example.txt")),
+            get_answer("../data/day7/example-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day7/input.txt"),
-            answer("../data/day7/input-part1-answer.txt")
+            part1(&get_input("../data/day7/input.txt")),
+            get_answer("../data/day7/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day7/input.txt"),
-            answer("../data/day7/input-part2-answer.txt")
+            part2(&get_input("../data/day7/input.txt")),
+            get_answer("../data/day7/input-part2-answer.txt")
         );
     }
 }

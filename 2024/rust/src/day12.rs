@@ -1,15 +1,15 @@
+use crate::shared::inputs::get_input;
 use crate::shared::map::{Coordinate, Map, MapIndex, Offset};
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 12: Garden Groups
 -------------------------------------------------------------------------------------------------*/
 
-fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part1(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let mut regions = Regions::new(&map);
     regions.map_regions();
 
@@ -18,8 +18,8 @@ fn part1<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
     Some(cost.to_string())
 }
 
-fn part2<P: AsRef<Path> + ?Sized>(input: &P) -> Option<String> {
-    let map = parse_input_file(input);
+pub fn part2(input: &str) -> Option<String> {
+    let map = parse_input(input);
     let mut regions = Regions::new(&map);
     regions.map_regions();
 
@@ -45,9 +45,8 @@ type Fence = (Coordinate, Coordinate);
 
 const NEIGHBOR_OFFSETS: [Offset; 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
-fn parse_input_file<P: AsRef<Path> + ?Sized>(input: &P) -> Map<char> {
-    let input = read_to_string(input).unwrap();
-    input.as_str().into()
+fn parse_input(input: &str) -> Map<char> {
+    input.into()
 }
 
 fn calculate_fencing_cost_part1(regions: &Regions) -> FenceCost {
@@ -272,8 +271,8 @@ pub enum Args {
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&input),
-        Args::Part2 { input } => part2(&input),
+        Args::Part1 { input } => part1(&get_input(&input)),
+        Args::Part2 { input } => part2(&get_input(&input)),
     }
 }
 
@@ -284,61 +283,61 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::answer;
+    use crate::shared::answers::get_answer;
 
     #[test]
     fn test_example2_part1() {
         assert_eq!(
-            part1("../data/day12/example2.txt"),
-            answer("../data/day12/example2-part1-answer.txt")
+            part1(&get_input("../data/day12/example2.txt")),
+            get_answer("../data/day12/example2-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1("../data/day12/input.txt"),
-            answer("../data/day12/input-part1-answer.txt")
+            part1(&get_input("../data/day12/input.txt")),
+            get_answer("../data/day12/input-part1-answer.txt")
         );
     }
 
     #[test]
     fn test_example2_part2() {
         assert_eq!(
-            part2("../data/day12/example2.txt"),
-            answer("../data/day12/example2-part2-answer.txt")
+            part2(&get_input("../data/day12/example2.txt")),
+            get_answer("../data/day12/example2-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_example3_part2() {
         assert_eq!(
-            part2("../data/day12/example3.txt"),
-            answer("../data/day12/example3-part2-answer.txt")
+            part2(&get_input("../data/day12/example3.txt")),
+            get_answer("../data/day12/example3-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_example4_part2() {
         assert_eq!(
-            part2("../data/day12/example4.txt"),
-            answer("../data/day12/example4-part2-answer.txt")
+            part2(&get_input("../data/day12/example4.txt")),
+            get_answer("../data/day12/example4-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_example5_part2() {
         assert_eq!(
-            part2("../data/day12/example5.txt"),
-            answer("../data/day12/example5-part2-answer.txt")
+            part2(&get_input("../data/day12/example5.txt")),
+            get_answer("../data/day12/example5-part2-answer.txt")
         );
     }
 
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2("../data/day12/input.txt"),
-            answer("../data/day12/input-part2-answer.txt")
+            part2(&get_input("../data/day12/input.txt")),
+            get_answer("../data/day12/input-part2-answer.txt")
         );
     }
 }
