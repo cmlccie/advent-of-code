@@ -6,15 +6,13 @@ You can find my **2024 Rust Solutions** in the [`2024/rust/src`](2024/rust/src) 
 
 ## Current Benchmarks
 
-`v0.4.0`:
-
 - Solution function times
-- I/O and setup removed
+- Excludes disk and terminal I/O and CLI setup code
 - Includes input parsing
 
 ```text
-aoc24::day1::part1      time:   [105.87 µs 106.71 µs 107.67 µs]
-aoc24::day1::part2      time:   [150.11 µs 150.29 µs 150.48 µs]
+aoc24::day1::part1      time:   [66.875 µs 66.934 µs 67.001 µs]
+aoc24::day1::part2      time:   [104.58 µs 104.74 µs 104.91 µs]
 aoc24::day2::part1      time:   [151.48 µs 151.58 µs 151.71 µs]
 aoc24::day2::part2      time:   [258.48 µs 258.71 µs 258.94 µs]
 aoc24::day3::part1      time:   [101.98 µs 102.16 µs 102.32 µs]

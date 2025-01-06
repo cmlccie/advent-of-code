@@ -1,7 +1,6 @@
 use crate::shared::inputs::get_input;
-use crate::shared::logging::log_if_error;
-use anyhow::{anyhow, Result};
 use std::collections::HashMap;
+use std::iter::zip;
 use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
@@ -9,31 +8,31 @@ use std::path::PathBuf;
 -------------------------------------------------------------------------------------------------*/
 
 pub fn part1(input: &str) -> Option<String> {
-    let (mut left_list, mut right_list): (Vec<_>, Vec<_>) = parse_input(input);
+    let (mut left_list, mut right_list) = parse_input(input);
 
     left_list.sort();
     right_list.sort();
 
-    let total_distance = std::iter::zip(left_list.iter(), right_list.iter())
+    let total_distance: Distance = zip(left_list, right_list)
         .map(|(left, right)| (right - left).abs())
-        .sum::<i64>();
+        .sum();
 
     Some(total_distance.to_string())
 }
 
 pub fn part2(input: &str) -> Option<String> {
-    let (left_list, right_list): (Vec<_>, Vec<_>) = parse_input(input);
+    let (left_list, right_list) = parse_input(input);
 
-    let right_list_id_count: HashMap<i64, i64> =
+    let right_list_id_count: HashMap<LocationID, IdCount> =
         right_list.iter().fold(HashMap::new(), |mut acc, id| {
             *acc.entry(*id).or_insert(0) += 1;
             acc
         });
 
-    let similarity_score = left_list
+    let similarity_score: SimilarityScore = left_list
         .iter()
         .map(|value| value * *right_list_id_count.get(value).unwrap_or(&0))
-        .sum::<i64>();
+        .sum();
 
     Some(similarity_score.to_string())
 }
@@ -42,28 +41,20 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-fn parse_line(line: &str) -> Result<(i64, i64)> {
-    if line.is_empty() {
-        return Err(anyhow!("Empty line"));
-    }
-    let mut parts = line.split("   ");
-    let left = parts
-        .next()
-        .ok_or(anyhow!("Missing left value"))?
-        .parse::<i64>()?;
-    let right = parts
-        .next()
-        .ok_or(anyhow!("Missing right value"))?
-        .parse::<i64>()?;
-    Ok((left, right))
-}
+type LocationID = i32;
+type IdCount = i32;
+type Distance = i32;
+type SimilarityScore = i32;
 
-fn parse_input(input: &str) -> (Vec<i64>, Vec<i64>) {
+fn parse_input(input: &str) -> (Vec<LocationID>, Vec<LocationID>) {
     input
         .lines()
-        .map(parse_line)
-        .inspect(log_if_error)
-        .filter_map(Result::ok)
+        .map(|line| {
+            let mut parts = line.split("   ");
+            let left: LocationID = parts.next().unwrap().parse().unwrap();
+            let right: LocationID = parts.next().unwrap().parse().unwrap();
+            (left, right)
+        })
         .unzip()
 }
 
@@ -93,15 +84,6 @@ pub fn main(args: Args) -> Option<String> {
 mod tests {
     use super::*;
     use crate::shared::answers::get_answer;
-
-    #[test]
-    fn test_parse_line() {
-        assert!(parse_line("").is_err());
-        assert!(parse_line("1").is_err());
-        assert!(parse_line("   2").is_err());
-
-        assert_eq!(parse_line("1   2").unwrap(), (1, 2));
-    }
 
     #[test]
     fn test_example_solution_part1() {
