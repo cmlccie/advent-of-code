@@ -221,11 +221,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         let input = get_input("../data/day14/input.txt");
 
         c.bench_function("aoc24::day14::part1", |b| {
-            b.iter(|| aoc24::day14::part1(black_box(&input)));
+            b.iter(|| aoc24::day14::part1(black_box(&input), 101, 103));
         });
 
         c.bench_function("aoc24::day14::part2", |b| {
-            b.iter(|| aoc24::day14::part2(black_box(&input)));
+            b.iter(|| aoc24::day14::part2(black_box(&input), false));
         });
     }
 

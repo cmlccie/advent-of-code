@@ -7,8 +7,8 @@ use std::path::PathBuf;
   Day 14: Restroom Redoubt
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1(input: &str) -> Option<String> {
-    let lobby = Lobby::new(101, 103);
+pub fn part1(input: &str, width: isize, height: isize) -> Option<String> {
+    let lobby = Lobby::new(width, height);
     let mut robots = parse_input(input);
 
     for _ in 0..100 {
@@ -20,7 +20,7 @@ pub fn part1(input: &str) -> Option<String> {
     Some(safety_factor.to_string())
 }
 
-pub fn part2(input: &str) -> Option<String> {
+pub fn part2(input: &str, visualize: bool) -> Option<String> {
     let lobby = Lobby::new(101, 103);
     let mut robots = parse_input(input);
 
@@ -28,14 +28,15 @@ pub fn part2(input: &str) -> Option<String> {
 
     for second in 0.. {
         if second > 47 && ((second - 47) % 103 == 0) && ((second - 82) % 101 == 0) {
-            // print!("\x1b[104A");
-            println!("Second: {}", second);
-            lobby.print(&robots);
             first_christmas_tree = second;
             break;
         }
 
         robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
+    }
+
+    if visualize {
+        lobby.print(&robots);
     }
 
     Some(first_christmas_tree.to_string())
@@ -197,14 +198,31 @@ enum Quadrant {
 #[derive(clap::Subcommand)]
 #[command(long_about = "Day 14: Restroom Redoubt")]
 pub enum Args {
-    Part1 { input: PathBuf },
-    Part2 { input: PathBuf },
+    Part1 {
+        input: PathBuf,
+
+        #[clap(short, long, default_value = "101")]
+        width: isize,
+
+        #[clap(short, long, default_value = "103")]
+        height: isize,
+    },
+    Part2 {
+        input: PathBuf,
+
+        #[clap(short, long, default_value = "false")]
+        visualize: bool,
+    },
 }
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&get_input(&input)),
-        Args::Part2 { input } => part2(&get_input(&input)),
+        Args::Part1 {
+            input,
+            width,
+            height,
+        } => part1(&get_input(&input), width, height),
+        Args::Part2 { input, visualize } => part2(&get_input(&input), visualize),
     }
 }
 
@@ -217,18 +235,18 @@ mod tests {
     use super::*;
     use crate::shared::answers::get_answer;
 
-    // #[test]
-    // fn test_example_part1() {
-    //     assert_eq!(
-    //         part1("../data/day14/example0.txt"),
-    //         solution("../data/day14/example0-part1-answer.txt")
-    //     );
-    // }
+    #[test]
+    fn test_example_part1() {
+        assert_eq!(
+            part1(&get_input("../data/day14/example0.txt"), 11, 7),
+            get_answer("../data/day14/example0-part1-answer.txt")
+        );
+    }
 
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1(&get_input("../data/day14/input.txt")),
+            part1(&get_input("../data/day14/input.txt"), 101, 103),
             get_answer("../data/day14/input-part1-answer.txt")
         );
     }
@@ -236,7 +254,7 @@ mod tests {
     #[test]
     fn test_part2_solution() {
         assert_eq!(
-            part2(&get_input("../data/day14/input.txt")),
+            part2(&get_input("../data/day14/input.txt"), false),
             get_answer("../data/day14/input-part2-answer.txt")
         );
     }
