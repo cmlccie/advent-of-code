@@ -13,8 +13,8 @@ You can find my **2024 Rust Solutions** in the [`2024/rust/src`](2024/rust/src) 
 ```text
 aoc24::day1::part1      time:   [66.875 µs 66.934 µs 67.001 µs]
 aoc24::day1::part2      time:   [104.58 µs 104.74 µs 104.91 µs]
-aoc24::day2::part1      time:   [151.48 µs 151.58 µs 151.71 µs]
-aoc24::day2::part2      time:   [258.48 µs 258.71 µs 258.94 µs]
+aoc24::day2::part1      time:   [135.82 µs 136.03 µs 136.24 µs]
+aoc24::day2::part2      time:   [226.48 µs 226.86 µs 227.30 µs]
 aoc24::day3::part1      time:   [101.98 µs 102.16 µs 102.32 µs]
 aoc24::day3::part2      time:   [62.152 µs 62.286 µs 62.427 µs]
 aoc24::day4::part1      time:   [1.3000 ms 1.3035 ms 1.3069 ms]

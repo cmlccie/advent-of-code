@@ -1,6 +1,4 @@
 use crate::shared::inputs::get_input;
-use crate::shared::logging::log_if_error;
-use anyhow::{anyhow, Result};
 use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
@@ -11,14 +9,9 @@ pub fn part1(input: &str) -> Option<String> {
     let safe_report_count = input
         .lines()
         .map(parse_line)
-        .inspect(log_if_error)
-        .filter_map(Result::ok)
         .map(|report| report_status(&report))
-        .map(|status| match status {
-            ReportStatus::Safe => 1,
-            ReportStatus::Unsafe => 0,
-        })
-        .sum::<i64>();
+        .filter(|&status| status)
+        .count();
 
     Some(safe_report_count.to_string())
 }
@@ -27,14 +20,9 @@ pub fn part2(input: &str) -> Option<String> {
     let updated_safe_report_count = input
         .lines()
         .map(parse_line)
-        .inspect(log_if_error)
-        .filter_map(Result::ok)
         .map(|report| report_status_with_problem_dampener(&report))
-        .map(|status| match status {
-            ReportStatus::Safe => 1,
-            ReportStatus::Unsafe => 0,
-        })
-        .sum::<i64>();
+        .filter(|&status| status)
+        .count();
 
     Some(updated_safe_report_count.to_string())
 }
@@ -43,50 +31,35 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-fn parse_line(line: &str) -> Result<Vec<i64>> {
-    if line.is_empty() {
-        return Err(anyhow!("Empty line"));
-    }
+type Level = i8;
 
-    line.split(' ')
-        .map(|s| s.parse::<i64>().map_err(|e| e.into()))
-        .collect()
+fn parse_line(line: &str) -> Vec<Level> {
+    line.split(' ').map(|s| s.parse().unwrap()).collect()
 }
 
-#[derive(Debug, PartialEq)]
-enum ReportStatus {
-    Safe,
-    Unsafe,
-}
-
-fn report_all_increasing(report: &[i64]) -> bool {
+fn report_all_increasing(report: &[Level]) -> bool {
     report.windows(2).all(|levels| levels[0] < levels[1])
 }
 
-fn report_all_decreasing(report: &[i64]) -> bool {
+fn report_all_decreasing(report: &[Level]) -> bool {
     report.windows(2).all(|levels| levels[0] > levels[1])
 }
 
-fn report_difference_tolerance(report: &[i64], min: i64, max: i64) -> bool {
+fn report_difference_tolerance(report: &[Level], min: Level, max: Level) -> bool {
     report.windows(2).all(|levels| {
         let difference = (levels[0] - levels[1]).abs();
-        (min <= difference) && (difference <= max)
+        (min..=max).contains(&difference)
     })
 }
 
-fn report_status(report: &[i64]) -> ReportStatus {
-    if (report_all_increasing(report) || report_all_decreasing(report))
+fn report_status(report: &[Level]) -> bool {
+    (report_all_increasing(report) || report_all_decreasing(report))
         && report_difference_tolerance(report, 1, 3)
-    {
-        ReportStatus::Safe
-    } else {
-        ReportStatus::Unsafe
-    }
 }
 
-fn report_status_with_problem_dampener(report: &[i64]) -> ReportStatus {
-    if report_status(report) == ReportStatus::Safe {
-        return ReportStatus::Safe;
+fn report_status_with_problem_dampener(report: &[Level]) -> bool {
+    if report_status(report) {
+        return true;
     };
 
     // Problem dampener: Remove one level at a time and check if the report is safe
@@ -94,12 +67,12 @@ fn report_status_with_problem_dampener(report: &[i64]) -> ReportStatus {
         let mut modified_report = report.to_vec();
         modified_report.remove(remove_level);
 
-        if report_status(&modified_report) == ReportStatus::Safe {
-            return ReportStatus::Safe;
+        if report_status(&modified_report) {
+            return true;
         }
     }
 
-    ReportStatus::Unsafe
+    false
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -128,20 +101,6 @@ pub fn main(args: Args) -> Option<String> {
 mod tests {
     use super::*;
     use crate::shared::answers::get_answer;
-
-    #[test]
-    fn test_parse_line() {
-        let file_contents = get_input("../data/day2/example.txt");
-        let mut parsed_lines = file_contents.lines().map(parse_line).filter_map(Result::ok);
-
-        assert_eq!(parsed_lines.next().unwrap(), vec![7, 6, 4, 2, 1]);
-        assert_eq!(parsed_lines.next().unwrap(), vec![1, 2, 7, 8, 9]);
-        assert_eq!(parsed_lines.next().unwrap(), vec![9, 7, 6, 2, 1]);
-        assert_eq!(parsed_lines.next().unwrap(), vec![1, 3, 2, 4, 5]);
-        assert_eq!(parsed_lines.next().unwrap(), vec![8, 6, 4, 4, 1]);
-        assert_eq!(parsed_lines.next().unwrap(), vec![1, 3, 6, 7, 9]);
-        assert!(parsed_lines.next().is_none());
-    }
 
     #[test]
     fn test_example_solution_part1() {

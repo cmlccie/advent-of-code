@@ -4,5 +4,4 @@
 
 pub mod answers;
 pub mod inputs;
-pub mod logging;
 pub mod map;
