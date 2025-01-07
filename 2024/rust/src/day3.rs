@@ -10,14 +10,14 @@ use std::sync::OnceLock;
 pub fn part1(input: &str) -> Option<String> {
     let mul_regex = get_mul_regex();
 
-    let multiplication_sum = mul_regex
+    let multiplication_sum: Number = mul_regex
         .captures_iter(input)
         .map(|cap| {
-            let a = cap[1].parse::<i64>().unwrap();
-            let b = cap[2].parse::<i64>().unwrap();
+            let a: Number = cap[1].parse().unwrap();
+            let b: Number = cap[2].parse().unwrap();
             a * b
         })
-        .sum::<i64>();
+        .sum();
 
     Some(multiplication_sum.to_string())
 }
@@ -34,11 +34,11 @@ pub fn part2(input: &str) -> Option<String> {
         acc + mul_regex
             .captures_iter(section.unwrap())
             .map(|cap| {
-                let a = cap[1].parse::<i64>().unwrap();
-                let b = cap[2].parse::<i64>().unwrap();
+                let a: Number = cap[1].parse().unwrap();
+                let b: Number = cap[2].parse().unwrap();
                 a * b
             })
-            .sum::<i64>()
+            .sum::<Number>()
     });
 
     Some(enabled_multiplications_sum.to_string())
@@ -47,6 +47,8 @@ pub fn part2(input: &str) -> Option<String> {
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
+
+type Number = u32;
 
 static MUL_REGEX_CELL: OnceLock<Regex> = OnceLock::new();
 
