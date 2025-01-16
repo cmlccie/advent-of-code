@@ -1,5 +1,7 @@
+use crate::shared::direction::CompassDirection;
+use crate::shared::grid_index::GridIndex;
 use crate::shared::inputs::get_input;
-use crate::shared::map::{Direction4C, Map, MapIndex};
+use crate::shared::map::Map;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::path::PathBuf;
@@ -12,7 +14,7 @@ pub fn part1(input: &str) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
     let mut map = Map::new(70 + 1, 70 + 1, '.');
     for position in corrupted_memory_positions.iter().take(1024) {
-        map.set(*position, '#');
+        map.set(*position, '#').unwrap();
     }
 
     let number_of_steps_to_exit = escape_route(&map);
@@ -25,48 +27,54 @@ pub fn part2(input: &str) -> Option<String> {
     let mut map = Map::new(70 + 1, 70 + 1, '.');
 
     for position in corrupted_memory_positions.iter().take(1024) {
-        map.set(*position, '#');
+        map.set(*position, '#').unwrap();
     }
 
-    let mut death_block: MapIndex = (0, 0);
+    let mut death_block: GridIndex<Index> = GridIndex::new(0, 0);
 
     for position in corrupted_memory_positions.iter().skip(1024) {
-        map.set(*position, '#');
+        map.set(*position, '#').unwrap();
         if escape_route(&map).is_none() {
             death_block = *position;
             break;
         };
     }
 
-    // MapIndex is (row, column)
-    Some(format!("{x},{y}", x = death_block.1, y = death_block.0))
+    // GridIndex<Index> is (row, column)
+    Some(format!(
+        "{x},{y}",
+        x = death_block.column,
+        y = death_block.row
+    ))
 }
 
 /*--------------------------------------------------------------------------------------
   Core
 --------------------------------------------------------------------------------------*/
 
-type Steps = u64;
+type Index = i8;
+type Steps = u16;
+type Direction = CompassDirection;
 
-fn parse_input(input: &str) -> Vec<MapIndex> {
+fn parse_input(input: &str) -> Vec<GridIndex<Index>> {
     input
         .lines()
         .map(|line| {
             let mut split = line.split(',');
             let x = split.next().unwrap().parse().unwrap();
             let y = split.next().unwrap().parse().unwrap();
-            (y, x) // MapIndex is (row, column)
+            (y, x).into() // GridIndex<Index> is (row, column)
         })
         .collect()
 }
 
 // Use Dijkstra's algorithm to find the shortest paths from the start to the goal
-fn escape_route(map: &Map<char>) -> Option<Steps> {
-    let start = (0, 0);
-    let goal = (map.rows() - 1, map.columns() - 1);
+fn escape_route(map: &Map<Index, char>) -> Option<Steps> {
+    let start = (0, 0).into();
+    let goal = (map.rows() - 1, map.columns() - 1).into();
 
-    let mut dist: HashMap<MapIndex, Steps> = HashMap::new();
-    let mut prev: HashMap<MapIndex, MapIndex> = HashMap::new();
+    let mut dist: HashMap<GridIndex<Index>, Steps> = HashMap::new();
+    let mut prev: HashMap<GridIndex<Index>, GridIndex<Index>> = HashMap::new();
     let mut heap: BinaryHeap<State> = BinaryHeap::new();
 
     let initial = State {
@@ -104,20 +112,20 @@ fn escape_route(map: &Map<char>) -> Option<Steps> {
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct State {
-    position: MapIndex,
+    position: GridIndex<Index>,
     steps: Steps,
 }
 
 impl State {
-    fn next_states(&self, map: &Map<char>) -> [Option<Self>; 4] {
+    fn next_states(&self, map: &Map<Index, char>) -> [Option<Self>; 4] {
         [
-            Direction4C::North,
-            Direction4C::South,
-            Direction4C::East,
-            Direction4C::West,
+            Direction::North,
+            Direction::South,
+            Direction::East,
+            Direction::West,
         ]
         .map(|direction| {
-            let next_position = map.project_index_direction(self.position, direction)?;
+            let next_position = map.project_direction(self.position, direction)?;
             position_is_clear(map, next_position).then_some(State {
                 position: next_position,
                 steps: self.steps + 1,
@@ -126,7 +134,7 @@ impl State {
     }
 }
 
-fn position_is_clear(map: &Map<char>, position: MapIndex) -> bool {
+fn position_is_clear(map: &Map<Index, char>, position: GridIndex<Index>) -> bool {
     map.get(position) != Some(&'#')
 }
 
@@ -173,7 +181,7 @@ fn example_part1(input: &str) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
     let mut map = Map::new(6 + 1, 6 + 1, '.');
     for position in corrupted_memory_positions.iter().take(12) {
-        map.set(*position, '#');
+        map.set(*position, '#').unwrap();
     }
 
     let number_of_steps_to_exit = escape_route(&map);

@@ -1,6 +1,6 @@
 [package]
 name = "aoc24"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 
 [features]
@@ -13,6 +13,7 @@ clap = { version = "4.5.21", features = ["derive"] }
 itertools = "0.13.0"
 log = "0.4.22"
 nalgebra = "0.33.2"
+num = "0.4.3"
 regex = "1.11.1"
 stderrlog = "0.6.0"
 strum = { version = "0.26.3", features = ["derive"] }

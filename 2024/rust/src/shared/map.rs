@@ -1,321 +1,176 @@
 #![allow(dead_code)]
+use crate::shared::direction::AnyDirection;
+use crate::shared::grid_index::GridIndex;
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use std::collections::HashSet;
+use num::{Integer, Signed};
+use std::cell::OnceCell;
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use strum::EnumIter;
 
 /*-------------------------------------------------------------------------------------------------
   Map
 -------------------------------------------------------------------------------------------------*/
 
-pub type MapIndex = (usize, usize);
-pub type Coordinate = (isize, isize);
-pub type Offset = (isize, isize);
-
 #[derive(Debug)]
-pub struct Map<T> {
-    map: Vec<Vec<T>>,
-    rows: usize,
-    columns: usize,
+pub struct Map<I, T>
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    data: Vec<T>,
+    bounds: GridIndex<I>,
 }
 
-impl<T> Map<T> {
-    pub fn new(rows: usize, columns: usize, default: T) -> Self
+impl<I, T> Map<I, T>
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    pub fn new(rows: I, columns: I, default: T) -> Self
     where
         T: Clone,
     {
-        let map = vec![vec![default; columns]; rows];
-        Self { map, rows, columns }
+        let data = vec![default; rows.try_into().unwrap() * columns.try_into().unwrap()];
+        let bounds = GridIndex::new(rows, columns);
+        Self { data, bounds }
     }
 
-    pub fn rows(&self) -> usize {
-        self.rows
+    pub fn rows(&self) -> I {
+        self.bounds.row
     }
 
-    pub fn columns(&self) -> usize {
-        self.columns
+    pub fn columns(&self) -> I {
+        self.bounds.column
     }
 
     pub fn len(&self) -> usize {
-        self.rows * self.columns
+        self.data.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.rows == 0 || self.columns == 0
+        self.data.is_empty()
     }
 
-    pub fn iter(&self) -> MapIterator<T> {
-        MapIterator::new(self)
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.data.iter()
     }
 
-    pub fn contents(&self) -> &Vec<Vec<T>> {
-        &self.map
+    pub fn enumerate(&self) -> impl Iterator<Item = (GridIndex<I>, &T)> {
+        self.data
+            .iter()
+            .enumerate()
+            .map(move |(internal_index, item)| {
+                let grid_index = self.grid_index(internal_index).unwrap();
+                (grid_index, item)
+            })
     }
 
-    pub fn find<F>(&self, mut predicate: F) -> Option<MapIndex>
+    pub fn rows_iter(&self) -> impl Iterator<Item = &[T]> {
+        self.data.chunks(self.bounds.column.try_into().unwrap())
+    }
+
+    pub fn find<F>(&self, predicate: F) -> Option<GridIndex<I>>
     where
         F: FnMut(&T) -> bool,
     {
-        for (row, column) in self.indices() {
-            if predicate(self.get((row, column)).unwrap()) {
-                return Some((row, column));
-            }
-        }
-        None
+        let internal_index = self.data.iter().position(predicate)?;
+        self.grid_index(internal_index)
+    }
+
+    pub fn check_is_in_bounds(&self, index: GridIndex<I>) -> bool {
+        (I::zero()..self.bounds.row).contains(&index.row)
+            && (I::zero()..self.bounds.column).contains(&index.column)
+    }
+
+    pub fn is_in_bounds(&self, index: GridIndex<I>) -> Option<GridIndex<I>> {
+        self.check_is_in_bounds(index).then_some(index)
+    }
+
+    pub fn get(&self, index: GridIndex<I>) -> Option<&T> {
+        let internal_index = self.internal_index(index)?;
+        Some(&self.data[internal_index])
+    }
+
+    pub fn get_mut(&mut self, index: GridIndex<I>) -> Option<&mut T> {
+        let internal_index = self.internal_index(index)?;
+        Some(&mut self.data[internal_index])
+    }
+
+    pub fn set(&mut self, index: GridIndex<I>, value: T) -> Result<()> {
+        let internal_index = self
+            .internal_index(index)
+            .ok_or(anyhow!("Index out of bounds"))?;
+        self.data[internal_index] = value;
+        Ok(())
+    }
+
+    pub fn project_offset(
+        &self,
+        index: GridIndex<I>,
+        offset: GridIndex<I>,
+    ) -> Option<GridIndex<I>> {
+        let new_index = index + offset;
+        self.check_is_in_bounds(new_index).then_some(new_index)
     }
 
     /*-------------------------------------------------------------------------
-      Methods for working with Indices
+      Private Methods for working with internal index
     -------------------------------------------------------------------------*/
 
-    pub fn get(&self, index: MapIndex) -> Option<&T> {
-        let (row, column) = index;
-        if row < self.rows && column < self.columns {
-            Some(&self.map[row][column])
-        } else {
-            None
-        }
+    fn internal_index(&self, index: GridIndex<I>) -> Option<usize> {
+        self.check_is_in_bounds(index).then(|| {
+            index.row.try_into().unwrap() * self.bounds.column.try_into().unwrap()
+                + index.column.try_into().unwrap()
+        })
     }
 
-    pub fn get_mut(&mut self, index: MapIndex) -> Option<&mut T> {
-        let (row, column) = index;
-        if row < self.rows && column < self.columns {
-            Some(&mut self.map[row][column])
-        } else {
-            None
-        }
-    }
-
-    pub fn set(&mut self, index: MapIndex, value: T) {
-        let (row, column) = index;
-        self.map[row][column] = value;
-    }
-
-    pub fn indices(&self) -> impl Iterator<Item = MapIndex> {
-        (0..self.rows).cartesian_product(0..self.columns)
-    }
-
-    pub fn index_to_coordinate(&self, index: MapIndex) -> Coordinate {
-        let (row, column) = index;
-        (
-            isize::try_from(row).unwrap(),
-            isize::try_from(column).unwrap(),
-        )
-    }
-
-    pub fn project_index_direction<D: Direction>(
-        &self,
-        index: MapIndex,
-        direction: D,
-    ) -> Option<MapIndex> {
-        let offset = direction.offset();
-        self.project_index_offset(index, offset)
-    }
-
-    pub fn project_index_offset(&self, index: MapIndex, offset: Offset) -> Option<MapIndex> {
-        let (row, column) = index;
-        let (row_offset, column_offset) = offset;
-        let coordinate = (row as isize + row_offset, column as isize + column_offset);
-        self.coordinate_to_index(coordinate)
-    }
-
-    pub fn project_index_offset_to_coordinate(
-        &self,
-        index: MapIndex,
-        offset: Offset,
-    ) -> Coordinate {
-        let (row, column) = index;
-        let (row, column) = (
-            isize::try_from(row).unwrap(),
-            isize::try_from(column).unwrap(),
-        );
-        let (row_offset, column_offset) = offset;
-        (row + row_offset, column + column_offset)
-    }
-
-    pub fn check_index_bounds(&self, index: MapIndex) -> bool {
-        let (row, column) = index;
-        row < self.rows && column < self.columns
-    }
-
-    /*-------------------------------------------------------------------------
-      Methods for working with Coordinates
-    -------------------------------------------------------------------------*/
-
-    pub fn get_coordinate(&self, coordinate: Coordinate) -> Option<&T> {
-        let index = self.coordinate_to_index(coordinate)?;
-        self.get(index)
-    }
-
-    pub fn get_coordinate_mut(&mut self, coordinate: Coordinate) -> Option<&mut T> {
-        let index = self.coordinate_to_index(coordinate)?;
-        self.get_mut(index)
-    }
-
-    pub fn coordinates(&self) -> impl Iterator<Item = Coordinate> {
-        let (rows, columns) = (
-            isize::try_from(self.rows).unwrap(),
-            isize::try_from(self.columns).unwrap(),
-        );
-        (0..rows).cartesian_product(0..columns)
-    }
-
-    pub fn coordinate_to_index(&self, coordinate: Coordinate) -> Option<MapIndex> {
-        if self.check_coordinate_bounds(coordinate) {
-            let (row, column) = coordinate;
-            Some((row as usize, column as usize))
-        } else {
-            None
-        }
-    }
-
-    pub fn project_coordinate_direction<D: Direction>(
-        &self,
-        coordinate: Coordinate,
-        direction: D,
-    ) -> Coordinate {
-        let offset = direction.offset();
-        self.project_coordinate_offset(coordinate, offset)
-    }
-
-    pub fn project_coordinate_offset(&self, coordinate: Coordinate, offset: Offset) -> Coordinate {
-        let (row, column) = coordinate;
-        let (row_offset, column_offset) = offset;
-        (row + row_offset, column + column_offset)
-    }
-
-    pub fn project_coordinate_offset_to_index(
-        &self,
-        coordinate: Coordinate,
-        offset: Offset,
-    ) -> Option<MapIndex> {
-        let new_coordinate = self.project_coordinate_offset(coordinate, offset);
-        self.coordinate_to_index(new_coordinate)
-    }
-
-    pub fn check_coordinate_bounds(&self, coordinate: Coordinate) -> bool {
-        let (row, column) = coordinate;
-        let (row, column) = (usize::try_from(row), usize::try_from(column));
-        if row.is_err() || column.is_err() {
-            return false;
-        }
-        let index = (row.unwrap(), column.unwrap());
-        self.check_index_bounds(index)
+    fn grid_index(&self, internal_index: usize) -> Option<GridIndex<I>> {
+        (0..self.data.len()).contains(&internal_index).then(|| {
+            let row: I = (internal_index / self.bounds.column.try_into().unwrap())
+                .try_into()
+                .unwrap();
+            let column: I = (internal_index % self.bounds.column.try_into().unwrap())
+                .try_into()
+                .unwrap();
+            GridIndex::new(row, column)
+        })
     }
 }
 
-impl Map<char> {
-    pub fn display_with_actor(&self, actor: char, index: MapIndex) -> String {
-        self.map
-            .iter()
-            .enumerate()
-            .map(|(row, columns)| {
-                columns
-                    .iter()
-                    .enumerate()
-                    .map(|(column, value)| {
-                        if (row, column) == index {
-                            actor
-                        } else {
-                            *value
-                        }
-                    })
-                    .collect::<String>()
-            })
-            .join("\n")
-    }
-
-    pub fn display_with_overlay(&self, overlay: char, indices: &HashSet<MapIndex>) -> String {
-        self.map
-            .iter()
-            .enumerate()
-            .map(|(row, columns)| {
-                columns
-                    .iter()
-                    .enumerate()
-                    .map(|(column, value)| {
-                        if indices.contains(&(row, column)) {
-                            overlay
-                        } else {
-                            *value
-                        }
-                    })
-                    .collect::<String>()
-            })
-            .join("\n")
-    }
-}
-
-/*--------------------------------------------------------------------------------------
-  Trait Implementations
---------------------------------------------------------------------------------------*/
-
-impl<T, I> FromIterator<I> for Map<T>
+impl<I, T> Map<I, T>
 where
-    I: IntoIterator<Item = T>,
+    I: Integer + Signed + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
 {
-    fn from_iter<O>(iter: O) -> Self
-    where
-        O: IntoIterator,
-        O::Item: IntoIterator<Item = T>,
-    {
-        let map: Vec<Vec<T>> = iter
-            .into_iter()
-            .map(|columns| columns.into_iter().collect())
-            .collect();
-
-        let rows = map.len();
-        let columns = if rows > 0 { map[0].len() } else { 0 };
-
-        // Verify all rows have the same number of columns
-        if !map.iter().all(|row| row.len() == columns) {
-            panic!("All rows must have the same number of columns");
-        }
-
-        Self { map, rows, columns }
+    pub fn project_direction<D: AnyDirection<I>>(
+        &self,
+        index: GridIndex<I>,
+        direction: D,
+    ) -> Option<GridIndex<I>> {
+        let offset = direction.offset();
+        self.project_offset(index, offset)
     }
 }
 
-impl From<&str> for Map<char> {
-    fn from(s: &str) -> Map<char> {
-        s.lines()
-            .map(|line| line.chars().collect::<Vec<_>>())
-            .collect()
-    }
-}
+/*-----------------------------------------------------------------------------
+  Display Methods
+-----------------------------------------------------------------------------*/
 
-impl From<&str> for Map<u8> {
-    fn from(s: &str) -> Map<u8> {
-        s.lines()
-            .map(|line| {
-                line.chars()
-                    .map(|c| c.to_digit(10).unwrap() as u8)
-                    .collect::<Vec<_>>()
-            })
-            .collect()
-    }
-}
-
-impl<T> From<Map<T>> for String
+impl<I, T> Display for Map<I, T>
 where
     T: Copy + Into<char>,
-{
-    fn from(map: Map<T>) -> String {
-        map.map
-            .iter()
-            .map(|row| row.iter().map(|&item| item.into()).collect::<String>())
-            .join("\n")
-    }
-}
-
-impl<T> Display for Map<T>
-where
-    T: Copy + Into<char>,
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for row in &self.map {
-            for item in row {
-                write!(f, "{}", (*item).into())?;
+        for row in self.data.chunks(self.bounds.column.try_into().unwrap()) {
+            for c in row {
+                write!(f, "{}", (*c).into())?;
             }
             writeln!(f)?;
         }
@@ -323,90 +178,166 @@ where
     }
 }
 
-/*--------------------------------------------------------------------------------------
-  Map Iterator
---------------------------------------------------------------------------------------*/
-
-pub struct MapIterator<'m, T> {
-    map: &'m Map<T>,
-    row: usize,
-    column: usize,
-}
-
-impl<'m, T> MapIterator<'m, T> {
-    pub fn new(map: &'m Map<T>) -> Self {
-        Self {
-            map,
-            row: 0,
-            column: 0,
-        }
+impl<I> Map<I, char>
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    pub fn display_with_actor(&self, actor: char, actor_index: GridIndex<I>) -> String {
+        self.data
+            .chunks(self.bounds.column.try_into().unwrap())
+            .enumerate()
+            .map(|(row, columns)| {
+                columns
+                    .iter()
+                    .enumerate()
+                    .map(|(column, &value)| {
+                        if GridIndex::new(row.try_into().unwrap(), column.try_into().unwrap())
+                            == actor_index
+                        {
+                            actor
+                        } else {
+                            value
+                        }
+                    })
+                    .collect::<String>()
+            })
+            .join("\n")
     }
 }
 
-impl<'m, T> Iterator for MapIterator<'m, T> {
-    type Item = &'m T;
+impl<I> Map<I, char>
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize> + std::hash::Hash + Eq,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    pub fn display_with_overlay(&self, overlay: &HashMap<GridIndex<I>, char>) -> String {
+        self.data
+            .chunks(self.bounds.column.try_into().unwrap())
+            .enumerate()
+            .map(|(row, columns)| {
+                columns
+                    .iter()
+                    .enumerate()
+                    .map(|(column, &value)| {
+                        let index =
+                            GridIndex::new(row.try_into().unwrap(), column.try_into().unwrap());
+                        overlay.get(&index).copied().unwrap_or(value)
+                    })
+                    .collect::<String>()
+            })
+            .join("\n")
+    }
+}
 
-    fn next(&mut self) -> Option<&'m T> {
-        let next_value = self.map.get((self.row, self.column))?;
+/*--------------------------------------------------------------------------------------
+  Conversion Trait Implementations
+--------------------------------------------------------------------------------------*/
 
-        let next_column = self.column + 1;
-        (self.row, self.column) = if next_column < self.map.columns {
-            (self.row, next_column)
-        } else {
-            (self.row + 1, 0)
+impl<R, I, T> FromIterator<R> for Map<I, T>
+where
+    R: IntoIterator<Item = T> + ExactSizeIterator,
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    fn from_iter<O>(iter: O) -> Self
+    where
+        O: IntoIterator,
+        O::Item: IntoIterator<Item = T> + ExactSizeIterator,
+    {
+        let column_count: OnceCell<usize> = OnceCell::new();
+        let mut row_count: usize = 0;
+
+        let data: Vec<T> = iter
+            .into_iter()
+            .flat_map(|row| {
+                column_count.get_or_init(|| row.len());
+                row_count += 1;
+                row.into_iter()
+            })
+            .collect();
+
+        let bounds: GridIndex<I> = GridIndex::new(
+            row_count.try_into().unwrap(),
+            (*OnceCell::get(&column_count).unwrap()).try_into().unwrap(),
+        );
+
+        if data.len() != (bounds.row.try_into().unwrap() * bounds.column.try_into().unwrap()) {
+            panic!("All rows must have the same number of columns");
         };
 
-        Some(next_value)
+        Self { data, bounds }
     }
 }
 
-/*-------------------------------------------------------------------------------------------------
-  Direction
--------------------------------------------------------------------------------------------------*/
+impl<I> From<&str> for Map<I, char>
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    fn from(s: &str) -> Self {
+        let data: Vec<char> = s.lines().flat_map(|line| line.chars()).collect();
+        let bounds: GridIndex<I> = GridIndex::new(
+            s.lines().count().try_into().unwrap(),
+            s.lines()
+                .next()
+                .unwrap()
+                .chars()
+                .count()
+                .try_into()
+                .unwrap(),
+        );
 
-pub trait Direction {
-    fn offset(&self) -> Offset;
-}
+        if data.len() != (bounds.row.try_into().unwrap() * bounds.column.try_into().unwrap()) {
+            panic!("All rows must have the same number of columns");
+        };
 
-/*--------------------------------------------------------------------------------------
-  Four-Direction Compass
---------------------------------------------------------------------------------------*/
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
-pub enum Direction4C {
-    North,
-    East,
-    South,
-    West,
-}
-
-impl Direction for Direction4C {
-    fn offset(&self) -> Offset {
-        match self {
-            Direction4C::North => (-1, 0),
-            Direction4C::South => (1, 0),
-            Direction4C::East => (0, 1),
-            Direction4C::West => (0, -1),
-        }
+        Self { data, bounds }
     }
 }
 
-impl Direction4C {
-    pub fn turn_left(&self) -> Self {
-        match self {
-            Direction4C::North => Direction4C::West,
-            Direction4C::West => Direction4C::South,
-            Direction4C::South => Direction4C::East,
-            Direction4C::East => Direction4C::North,
-        }
-    }
+impl<I, T> Map<I, T>
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+{
+    pub fn from_char_map<F: Fn(char) -> T>(s: &str, f: F) -> Self {
+        let data: Vec<T> = s.lines().flat_map(|line| line.chars().map(&f)).collect();
+        let bounds: GridIndex<I> = GridIndex::new(
+            s.lines().count().try_into().unwrap(),
+            s.lines()
+                .next()
+                .unwrap()
+                .chars()
+                .count()
+                .try_into()
+                .unwrap(),
+        );
 
-    pub fn turn_right(&self) -> Self {
-        match self {
-            Direction4C::North => Direction4C::East,
-            Direction4C::East => Direction4C::South,
-            Direction4C::South => Direction4C::West,
-            Direction4C::West => Direction4C::North,
-        }
+        if data.len() != (bounds.row.try_into().unwrap() * bounds.column.try_into().unwrap()) {
+            panic!("All rows must have the same number of columns");
+        };
+
+        Self { data, bounds }
+    }
+}
+
+impl<I, T> From<Map<I, T>> for String
+where
+    I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
+    <I as TryInto<usize>>::Error: std::fmt::Debug,
+    <I as TryFrom<usize>>::Error: std::fmt::Debug,
+    T: Copy + Into<char>,
+{
+    fn from(map: Map<I, T>) -> String {
+        map.data
+            .chunks(map.bounds.column.try_into().unwrap())
+            .map(|row| row.iter().map(|&c| c.into()).collect::<String>())
+            .join("\n")
     }
 }

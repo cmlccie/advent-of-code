@@ -1,5 +1,7 @@
+use crate::shared::direction::CompassDirection;
+use crate::shared::grid_index::GridIndex;
 use crate::shared::inputs::get_input;
-use crate::shared::map::{Direction4C, Map, MapIndex, Offset};
+use crate::shared::map::Map;
 use cached::proc_macro::cached;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
@@ -29,24 +31,28 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-type Time = usize;
+type Index = i16;
+type Offset = GridIndex<Index>;
+type Direction = CompassDirection;
+
+type Time = i16;
 type CheatCount = usize;
 
-fn parse_input(input: &str) -> Map<char> {
+fn parse_input(input: &str) -> Map<Index, char> {
     input.into()
 }
 
 fn count_cheats_that_save_time(
-    map: &Map<char>,
+    map: &Map<Index, char>,
     cheat_max_time: Time,
     min_savings: Time,
 ) -> CheatCount {
     let course = map_course(map);
 
-    let course_index: HashMap<MapIndex, Time> = course
+    let course_index: HashMap<GridIndex<Index>, Time> = course
         .iter()
         .enumerate()
-        .map(|(time, position)| (*position, time))
+        .map(|(time, position)| (*position, time.try_into().unwrap()))
         .collect();
 
     let cheats: Vec<Cheat> = course
@@ -77,7 +83,7 @@ fn count_cheats_that_save_time(
   Map Course
 -----------------------------------------------------------------------------*/
 
-fn map_course(map: &Map<char>) -> Vec<MapIndex> {
+fn map_course(map: &Map<Index, char>) -> Vec<GridIndex<Index>> {
     let start = map.find(|&c| c == 'S').unwrap();
     let goal = map.find(|&c| c == 'E').unwrap();
     let mut position = start;
@@ -90,15 +96,15 @@ fn map_course(map: &Map<char>) -> Vec<MapIndex> {
     course
 }
 
-fn next_position(map: &Map<char>, course: &[MapIndex]) -> MapIndex {
+fn next_position(map: &Map<Index, char>, course: &[GridIndex<Index>]) -> GridIndex<Index> {
     let current_position = course.last().unwrap();
     let previous_position = if course.len() > 2 {
         course.get(course.len() - 2).unwrap()
     } else {
         current_position
     };
-    for direction in Direction4C::iter() {
-        if let Some(position) = map.project_index_direction(*current_position, direction) {
+    for direction in Direction::iter() {
+        if let Some(position) = map.project_direction(*current_position, direction) {
             if position == *previous_position {
                 continue;
             }
@@ -111,7 +117,7 @@ fn next_position(map: &Map<char>, course: &[MapIndex]) -> MapIndex {
     panic!("No next position found!");
 }
 
-fn position_is_track(map: &Map<char>, position: MapIndex) -> bool {
+fn position_is_track(map: &Map<Index, char>, position: GridIndex<Index>) -> bool {
     map.get(position) != Some(&'#')
 }
 
@@ -120,9 +126,9 @@ fn position_is_track(map: &Map<char>, position: MapIndex) -> bool {
 -----------------------------------------------------------------------------*/
 
 fn find_cheats(
-    map: &Map<char>,
-    course_index: &HashMap<MapIndex, Time>,
-    start: MapIndex,
+    map: &Map<Index, char>,
+    course_index: &HashMap<GridIndex<Index>, Time>,
+    start: GridIndex<Index>,
     duration: Time,
 ) -> Vec<Cheat> {
     let start_time = course_index[&start];
@@ -142,25 +148,29 @@ fn find_cheats(
 
 #[cached]
 fn get_offsets(duration: Time) -> Vec<(Offset, Time)> {
-    let duration = isize::try_from(duration).unwrap();
     let offset_grid = duration * 2 + 1;
-    let center = (offset_grid / 2, offset_grid / 2);
+    let center: Offset = (offset_grid / 2, offset_grid / 2).into();
     (0..offset_grid)
         .cartesian_product(0..offset_grid)
         .filter_map(|offset| {
-            let offset = (offset.0 - center.0, offset.1 - center.1);
-            let offset_duration = offset.0.abs() + offset.1.abs();
-            (offset_duration <= duration).then_some((offset, offset_duration as Time))
+            let offset: Offset = offset.into();
+            let offset: Offset = offset - center;
+            let offset_duration: Time = offset.row.abs() + offset.column.abs();
+            (offset_duration <= duration).then_some((offset, offset_duration))
         })
         .filter(|(offset, _)| offset != &center)
         .collect()
 }
 
-fn reachable_positions(map: &Map<char>, start: MapIndex, duration: Time) -> Vec<(MapIndex, Time)> {
+fn reachable_positions(
+    map: &Map<Index, char>,
+    start: GridIndex<Index>,
+    duration: Time,
+) -> Vec<(GridIndex<Index>, Time)> {
     get_offsets(duration)
         .iter()
         .filter_map(|(offset, duration)| {
-            Some((map.project_index_offset(start, *offset)?, *duration as Time))
+            Some((map.project_offset(start, *offset)?, *duration as Time))
         })
         .filter(|(position, _)| position_is_track(map, *position))
         .collect()
@@ -169,8 +179,8 @@ fn reachable_positions(map: &Map<char>, start: MapIndex, duration: Time) -> Vec<
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 struct Cheat {
-    start: MapIndex,
-    end: MapIndex,
+    start: GridIndex<Index>,
+    end: GridIndex<Index>,
     saves: Time,
 }
 

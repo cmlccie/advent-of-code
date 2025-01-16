@@ -1,5 +1,6 @@
+use crate::shared::grid_index::GridIndex;
 use crate::shared::inputs::get_input;
-use crate::shared::map::{Coordinate, Map, MapIndex, Offset};
+use crate::shared::map::Map;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -32,20 +33,28 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
+type Index = i16;
+type Plot = GridIndex<Index>;
+type Offset = Plot;
+type Fence = (Plot, Plot);
 type Plant = char;
-type RegionID = u64;
-type Region = HashSet<MapIndex>;
+type Region = HashSet<Plot>;
+type RegionID = u16;
 
-type Perimeter = u64;
-type Area = u64;
-type FenceCost = u64;
+type Answer = u32;
+type Area = Answer;
+type Perimeter = Answer;
+type SideCount = Answer;
+type FenceCost = Answer;
 
-type SideCount = u64;
-type Fence = (Coordinate, Coordinate);
+const NEIGHBOR_OFFSETS: [Offset; 4] = [
+    GridIndex::new(-1, 0),
+    GridIndex::new(1, 0),
+    GridIndex::new(0, -1),
+    GridIndex::new(0, 1),
+];
 
-const NEIGHBOR_OFFSETS: [Offset; 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-fn parse_input(input: &str) -> Map<char> {
+fn parse_input(input: &str) -> Map<i16, char> {
     input.into()
 }
 
@@ -56,7 +65,7 @@ fn calculate_fencing_cost_part1(regions: &Regions) -> FenceCost {
         .map(|region| {
             let area = calculate_region_area(region);
             let perimeter = calculate_region_perimeter(regions.map, region);
-            area * perimeter
+            (area * perimeter) as FenceCost
         })
         .sum()
 }
@@ -68,36 +77,36 @@ fn calculate_fencing_cost_part2(regions: &Regions) -> FenceCost {
         .map(|region| {
             let area = calculate_region_area(region);
             let sides = calculate_region_sides(regions.map, region);
-            area * sides
+            (area * sides) as FenceCost
         })
         .sum()
 }
 
 fn calculate_region_area(region: &Region) -> Area {
-    region.len() as u64
+    region.len().try_into().unwrap()
 }
 
-fn calculate_region_perimeter(map: &Map<char>, region: &Region) -> Perimeter {
+fn calculate_region_perimeter(map: &Map<Index, Plant>, region: &Region) -> Perimeter {
     region
         .iter()
         .map(|plot| {
             let region_neighbors = NEIGHBOR_OFFSETS
                 .iter()
-                .flat_map(move |offset| map.project_index_offset(*plot, *offset))
+                .flat_map(move |offset| map.project_offset(*plot, *offset))
                 .filter(|neighbor| region.contains(neighbor))
                 .count();
-            4 - region_neighbors
+            (4 - region_neighbors) as Perimeter
         })
-        .sum::<usize>() as u64
+        .sum()
 }
 
-fn calculate_region_sides(map: &Map<char>, region: &Region) -> SideCount {
-    let boundary_plots: HashSet<(usize, usize)> = region
+fn calculate_region_sides(map: &Map<Index, Plant>, region: &Region) -> SideCount {
+    let boundary_plots: HashSet<Plot> = region
         .iter()
         .filter(|index| {
             NEIGHBOR_OFFSETS
                 .iter()
-                .filter_map(|offset| map.project_index_offset(**index, *offset)) // Neighboring plots
+                .filter_map(|offset| map.project_offset(**index, *offset)) // Neighboring plots
                 .filter(|index| region.contains(index)) // In-region neighbors
                 .count()
                 != 4 // All 4 neighbors are NOT in the region (boundary plot)
@@ -107,17 +116,12 @@ fn calculate_region_sides(map: &Map<char>, region: &Region) -> SideCount {
 
     let fences: Vec<Fence> = boundary_plots
         .iter()
-        .map(|index| map.index_to_coordinate(*index))
         .flat_map(|plot| {
-            let inside_neighbor = plot;
+            let inside_neighbor = *plot;
             NEIGHBOR_OFFSETS
                 .iter()
-                .map(move |offset| map.project_coordinate_offset(plot, *offset)) // Neighbors (including off-map)
-                .filter(|neighbor| {
-                    map.coordinate_to_index(*neighbor)
-                        .and_then(|neighbor| region.contains(&neighbor).then_some(neighbor))
-                        .is_none()
-                }) // Out-of-region neighbors
+                .map(move |offset| *plot + *offset) // Neighbor plots (including off-map)
+                .filter(|neighbor| !region.contains(neighbor)) // Out-of-region neighbors
                 .map(move |outside_neighbor| (inside_neighbor, outside_neighbor))
         })
         .collect();
@@ -169,26 +173,20 @@ fn identify_and_count_sides(fence_adjacency_map: &mut HashMap<Fence, HashSet<Fen
         sides.push(side);
     }
 
-    sides.len() as u64
+    sides.len() as SideCount
 }
 
 fn fences_are_adjacent(fence0: Fence, fence1: Fence) -> bool {
     let (inside_plot0, outside_plot0) = fence0;
     let (inside_plot1, outside_plot1) = fence1;
 
-    let inside_shift = (
-        inside_plot0.0 - inside_plot1.0,
-        inside_plot0.1 - inside_plot1.1,
-    );
+    let inside_shift = inside_plot0 - inside_plot1;
+    let outside_shift = outside_plot0 - outside_plot1;
 
-    let outside_shift = (
-        outside_plot0.0 - outside_plot1.0,
-        outside_plot0.1 - outside_plot1.1,
-    );
+    let absolute_shift = inside_shift.abs();
+    let shift = absolute_shift.row + absolute_shift.column;
 
-    let magnitude = inside_shift.0.abs() + inside_shift.1.abs();
-
-    magnitude == 1 && inside_shift.0 == outside_shift.0 && inside_shift.1 == outside_shift.1
+    shift == 1 && inside_shift == outside_shift
 }
 
 /*-----------------------------------------------------------------------------
@@ -196,16 +194,16 @@ fn fences_are_adjacent(fence0: Fence, fence1: Fence) -> bool {
 -----------------------------------------------------------------------------*/
 
 struct Regions<'m> {
-    map: &'m Map<char>,
+    map: &'m Map<Index, Plant>,
 
     regions: HashMap<RegionID, Region>,
-    plots: HashMap<MapIndex, RegionID>,
+    plots: HashMap<Plot, RegionID>,
 
     next_region_id: RegionID,
 }
 
 impl<'m> Regions<'m> {
-    fn new(map: &'m Map<char>) -> Self {
+    fn new(map: &'m Map<Index, Plant>) -> Self {
         Self {
             map,
             regions: HashMap::new(),
@@ -215,7 +213,7 @@ impl<'m> Regions<'m> {
     }
 
     fn map_regions(&mut self) {
-        for index in self.map.indices() {
+        for (index, _) in self.map.enumerate() {
             if self.plots.contains_key(&index) {
                 continue;
             }
@@ -224,7 +222,7 @@ impl<'m> Regions<'m> {
         }
     }
 
-    fn create_region(&mut self, start: MapIndex) {
+    fn create_region(&mut self, start: Plot) {
         let region_id = self.next_region_id;
         self.next_region_id += 1;
 
@@ -233,27 +231,24 @@ impl<'m> Regions<'m> {
         self.regions.insert(region_id, region);
     }
 
-    fn plot_region(
-        &mut self,
-        region_id: RegionID,
-        region: &mut Region,
-        plant: Plant,
-        index: MapIndex,
-    ) {
+    fn plot_region(&mut self, region_id: RegionID, region: &mut Region, plant: Plant, plot: Plot) {
         // Skip if this plot has already been assigned to the region
-        if region.contains(&index) {
+        if region.contains(&plot) {
             return;
         }
 
         // Add this plot to the region
-        region.insert(index);
-        self.plots.insert(index, region_id);
+        region.insert(plot);
+        self.plots.insert(plot, region_id);
 
         // Check the surrounding plots
         NEIGHBOR_OFFSETS
             .iter()
-            .filter_map(|offset| self.map.project_index_offset(index, *offset))
-            .filter(|index| self.map.get(*index) == Some(&plant))
+            .filter_map(|offset| {
+                let neighbor_plot = plot + *offset;
+                let neighbor_plant = self.map.get(neighbor_plot)?;
+                (neighbor_plant == &plant).then_some(neighbor_plot)
+            })
             .for_each(|index| self.plot_region(region_id, region, plant, index));
     }
 }

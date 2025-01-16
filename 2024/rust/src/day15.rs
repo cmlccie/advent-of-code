@@ -1,6 +1,7 @@
+use crate::shared::direction::{AnyDirection, GridDirection};
+use crate::shared::grid_index::GridIndex;
 use crate::shared::inputs::get_input;
-use crate::shared::map::{Map, MapIndex, Offset};
-use std::fmt::{Display, Formatter};
+use crate::shared::map::Map;
 use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
@@ -50,24 +51,21 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-type Position = MapIndex;
+type Index = i8;
+type Position = GridIndex<Index>;
+type Direction = GridDirection;
+type Answer = u32;
 
-fn parse_input(input: &str) -> (Map<WarehouseItem>, Vec<Direction>) {
-    let blank_line_index = input.lines().position(|line| line.is_empty()).unwrap();
+fn parse_input(input: &str) -> (Map<Index, WarehouseItem>, Vec<Direction>) {
+    let blank_line_index = input.find("\n\n").unwrap() + 1;
+    let map_str = &input[..blank_line_index];
+    let directions_str = &input[blank_line_index + 1..];
 
-    let warehouse: Map<WarehouseItem> = input
+    let warehouse: Map<Index, WarehouseItem> =
+        Map::from_char_map(map_str, |c| WarehouseItem::try_from(c).unwrap());
+
+    let directions = directions_str
         .lines()
-        .take(blank_line_index)
-        .map(|line| {
-            line.chars()
-                .map(|c| WarehouseItem::try_from(c).unwrap())
-                .collect::<Vec<_>>()
-        })
-        .collect();
-
-    let directions = input
-        .lines()
-        .skip(blank_line_index + 1)
         .flat_map(|line| line.chars())
         .map(|c| Direction::try_from(c).unwrap())
         .collect();
@@ -75,10 +73,9 @@ fn parse_input(input: &str) -> (Map<WarehouseItem>, Vec<Direction>) {
     (warehouse, directions)
 }
 
-fn modify_warehouse(warehouse: &Map<WarehouseItem>) -> Map<WarehouseItem> {
+fn modify_warehouse(warehouse: &Map<Index, WarehouseItem>) -> Map<Index, WarehouseItem> {
     warehouse
-        .contents()
-        .iter()
+        .rows_iter()
         .map(|row| {
             row.iter()
                 .flat_map(|item| match item {
@@ -87,20 +84,20 @@ fn modify_warehouse(warehouse: &Map<WarehouseItem>) -> Map<WarehouseItem> {
                     item => [*item, *item],
                 })
                 .collect::<Vec<_>>()
+                .into_iter()
         })
         .collect()
 }
 
-fn calculate_gps_coordinates_sum(warehouse: &Map<WarehouseItem>) -> usize {
+fn calculate_gps_coordinates_sum(warehouse: &Map<Index, WarehouseItem>) -> Answer {
     warehouse
-        .indices()
-        .filter(|index| {
-            matches!(
-                *warehouse.get(*index).unwrap(),
-                WarehouseItem::Box | WarehouseItem::BigBoxLeft
-            )
+        .enumerate()
+        .filter(|(_, item)| matches!(**item, WarehouseItem::Box | WarehouseItem::BigBoxLeft))
+        .map(|(index, _)| {
+            let row: Answer = index.row.try_into().unwrap();
+            let column: Answer = index.column.try_into().unwrap();
+            row * 100 + column
         })
-        .map(|(row, column)| row * 100 + column)
         .sum()
 }
 
@@ -146,60 +143,6 @@ impl From<WarehouseItem> for char {
 }
 
 /*-----------------------------------------------------------------------------
-  Direction
------------------------------------------------------------------------------*/
-
-#[derive(Debug, Clone, Copy)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-impl Direction {
-    fn offset(&self) -> Offset {
-        match self {
-            Self::Up => (-1, 0),
-            Self::Down => (1, 0),
-            Self::Left => (0, -1),
-            Self::Right => (0, 1),
-        }
-    }
-}
-
-impl TryFrom<char> for Direction {
-    type Error = ();
-
-    fn try_from(value: char) -> Result<Self, Self::Error> {
-        match value {
-            '^' => Ok(Self::Up),
-            'v' => Ok(Self::Down),
-            '<' => Ok(Self::Left),
-            '>' => Ok(Self::Right),
-            _ => Err(()),
-        }
-    }
-}
-
-impl From<Direction> for char {
-    fn from(direction: Direction) -> Self {
-        match direction {
-            Direction::Up => '^',
-            Direction::Down => 'v',
-            Direction::Left => '<',
-            Direction::Right => '>',
-        }
-    }
-}
-
-impl Display for Direction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", char::from(*self))
-    }
-}
-
-/*-----------------------------------------------------------------------------
   Robot
 -----------------------------------------------------------------------------*/
 
@@ -213,14 +156,12 @@ impl Robot {
         Self { position }
     }
 
-    fn attempt_move(&mut self, warehouse: &mut Map<WarehouseItem>, direction: Direction) {
+    fn attempt_move(&mut self, warehouse: &mut Map<Index, WarehouseItem>, direction: Direction) {
         if item_at_position_can_move(warehouse, self.position, direction) {
             move_item(warehouse, self.position, direction);
 
             let offset = direction.offset();
-            let next_position = warehouse
-                .project_index_offset(self.position, offset)
-                .unwrap();
+            let next_position = warehouse.project_offset(self.position, offset).unwrap();
             self.position = next_position;
         }
     }
@@ -233,7 +174,7 @@ impl Robot {
 // Treat the left-half of the big box as the left box as the controlling side
 
 fn item_at_position_can_move(
-    warehouse: &Map<WarehouseItem>,
+    warehouse: &Map<Index, WarehouseItem>,
     position: Position,
     direction: Direction,
 ) -> bool {
@@ -252,7 +193,7 @@ fn item_at_position_can_move(
         .all(|&next_position| item_at_position_can_move(warehouse, next_position, direction))
 }
 
-fn move_item(warehouse: &mut Map<WarehouseItem>, position: Position, direction: Direction) {
+fn move_item(warehouse: &mut Map<Index, WarehouseItem>, position: Position, direction: Direction) {
     let item = warehouse.get(position).unwrap().to_owned();
 
     if matches!(item, WarehouseItem::Empty) {
@@ -273,15 +214,23 @@ fn move_item(warehouse: &mut Map<WarehouseItem>, position: Position, direction: 
     }
 }
 
-fn move_single_item(warehouse: &mut Map<WarehouseItem>, position: Position, direction: Direction) {
+fn move_single_item(
+    warehouse: &mut Map<Index, WarehouseItem>,
+    position: Position,
+    direction: Direction,
+) {
     let next_position = warehouse
-        .project_index_offset(position, direction.offset())
+        .project_offset(position, direction.offset())
         .unwrap();
 
     map_move(warehouse, position, next_position);
 }
 
-fn move_big_box(warehouse: &mut Map<WarehouseItem>, position: Position, direction: Direction) {
+fn move_big_box(
+    warehouse: &mut Map<Index, WarehouseItem>,
+    position: Position,
+    direction: Direction,
+) {
     let (left_position, right_position) = big_box_positions(warehouse, position);
     match direction {
         Direction::Up | Direction::Down => {
@@ -300,7 +249,7 @@ fn move_big_box(warehouse: &mut Map<WarehouseItem>, position: Position, directio
 }
 
 fn next_positions(
-    warehouse: &Map<WarehouseItem>,
+    warehouse: &Map<Index, WarehouseItem>,
     position: Position,
     direction: Direction,
 ) -> Vec<Position> {
@@ -308,32 +257,27 @@ fn next_positions(
     let offset = direction.offset();
     match item {
         WarehouseItem::Empty => vec![],
-        WarehouseItem::Robot => vec![warehouse.project_index_offset(position, offset).unwrap()],
-        WarehouseItem::Box => vec![warehouse.project_index_offset(position, offset).unwrap()],
+        WarehouseItem::Robot => vec![warehouse.project_offset(position, offset).unwrap()],
+        WarehouseItem::Box => vec![warehouse.project_offset(position, offset).unwrap()],
         WarehouseItem::BigBoxLeft | WarehouseItem::BigBoxRight => {
             let (left_position, right_position) = big_box_positions(warehouse, position);
             match direction {
                 Direction::Up | Direction::Down => vec![
-                    warehouse
-                        .project_index_offset(left_position, offset)
-                        .unwrap(),
-                    warehouse
-                        .project_index_offset(right_position, offset)
-                        .unwrap(),
+                    warehouse.project_offset(left_position, offset).unwrap(),
+                    warehouse.project_offset(right_position, offset).unwrap(),
                 ],
-                Direction::Left => vec![warehouse
-                    .project_index_offset(left_position, offset)
-                    .unwrap()],
-                Direction::Right => vec![warehouse
-                    .project_index_offset(right_position, offset)
-                    .unwrap()],
+                Direction::Left => vec![warehouse.project_offset(left_position, offset).unwrap()],
+                Direction::Right => vec![warehouse.project_offset(right_position, offset).unwrap()],
             }
         }
         _ => panic!("We should only be moving movable items!"),
     }
 }
 
-fn big_box_positions(warehouse: &Map<WarehouseItem>, position: Position) -> (Position, Position) {
+fn big_box_positions(
+    warehouse: &Map<Index, WarehouseItem>,
+    position: Position,
+) -> (Position, Position) {
     let item_at_position = warehouse.get(position).unwrap().to_owned();
 
     match item_at_position {
@@ -341,7 +285,7 @@ fn big_box_positions(warehouse: &Map<WarehouseItem>, position: Position) -> (Pos
             let left_position = position;
             let right_offset = Direction::Right.offset();
             let right_position = warehouse
-                .project_index_offset(left_position, right_offset)
+                .project_offset(left_position, right_offset)
                 .unwrap();
             (left_position, right_position)
         }
@@ -349,7 +293,7 @@ fn big_box_positions(warehouse: &Map<WarehouseItem>, position: Position) -> (Pos
             let right_position = position;
             let left_offset = Direction::Left.offset();
             let left_position = warehouse
-                .project_index_offset(right_position, left_offset)
+                .project_offset(right_position, left_offset)
                 .unwrap();
             (left_position, right_position)
         }
@@ -357,11 +301,11 @@ fn big_box_positions(warehouse: &Map<WarehouseItem>, position: Position) -> (Pos
     }
 }
 
-fn map_move(warehouse: &mut Map<WarehouseItem>, from: Position, to: Position) {
+fn map_move(warehouse: &mut Map<Index, WarehouseItem>, from: Position, to: Position) {
     assert_eq!(warehouse.get(to).unwrap(), &WarehouseItem::Empty);
     let item = warehouse.get(from).unwrap().to_owned();
-    warehouse.set(from, WarehouseItem::Empty);
-    warehouse.set(to, item);
+    warehouse.set(from, WarehouseItem::Empty).unwrap();
+    warehouse.set(to, item).unwrap();
 }
 
 /*-------------------------------------------------------------------------------------------------

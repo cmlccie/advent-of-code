@@ -1,5 +1,7 @@
+use crate::shared::direction::CompassDirection;
+use crate::shared::grid_index::GridIndex;
 use crate::shared::inputs::get_input;
-use crate::shared::map::{Direction4C, Map, MapIndex};
+use crate::shared::map::Map;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::iter::once;
@@ -27,28 +29,30 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-type Score = u64;
-type TileCount = u64;
+type Index = i16;
+type TileCount = i16;
+type Score = i32;
+type Direction = CompassDirection;
+type PositionAndDirection = (GridIndex<Index>, Direction);
 
-fn parse_input(input: &str) -> Map<char> {
+fn parse_input(input: &str) -> Map<Index, char> {
     input.into()
 }
 
 // Use Dijkstra's algorithm to find the shortest paths from the start to the goal
-fn race(map: &Map<char>) -> (Score, TileCount) {
+fn race(map: &Map<Index, char>) -> (Score, TileCount) {
     let start = map.find(|&c| c == 'S').unwrap();
     let goal = map.find(|&c| c == 'E').unwrap();
 
-    let mut dist: HashMap<(MapIndex, Direction4C), Score> = HashMap::new();
-    let mut prev: HashMap<(MapIndex, Direction4C), HashSet<(MapIndex, Direction4C)>> =
-        HashMap::new();
+    let mut dist: HashMap<(GridIndex<Index>, Direction), Score> = HashMap::new();
+    let mut prev: HashMap<PositionAndDirection, HashSet<PositionAndDirection>> = HashMap::new();
     let mut heap: BinaryHeap<State> = BinaryHeap::new();
 
     let mut best_score: Score = Score::MAX;
 
     let initial_state = State {
         position: start,
-        direction: Direction4C::East,
+        direction: Direction::East,
         score: 0,
     };
     let initial_key = (initial_state.position, initial_state.direction);
@@ -88,12 +92,12 @@ fn race(map: &Map<char>) -> (Score, TileCount) {
         }
     }
 
-    let mut tiles: HashSet<MapIndex> = HashSet::new();
+    let mut tiles: HashSet<GridIndex<Index>> = HashSet::new();
     let mut stack = vec![
-        (goal, Direction4C::North),
-        (goal, Direction4C::South),
-        (goal, Direction4C::East),
-        (goal, Direction4C::West),
+        (goal, Direction::North),
+        (goal, Direction::South),
+        (goal, Direction::East),
+        (goal, Direction::West),
     ];
     while let Some(current) = stack.pop() {
         if let Some(prevs) = prev.get(&current) {
@@ -103,7 +107,6 @@ fn race(map: &Map<char>) -> (Score, TileCount) {
             }
         }
     }
-    log::debug!("Best Paths:\n{}", map.display_with_overlay('O', &tiles));
 
     (best_score, tiles.len() as TileCount)
 }
@@ -114,18 +117,18 @@ fn race(map: &Map<char>) -> (Score, TileCount) {
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct State {
-    position: MapIndex,
-    direction: Direction4C,
+    position: GridIndex<Index>,
+    direction: Direction,
     score: Score,
 }
 
 impl State {
-    fn next_states(&self, map: &Map<char>) -> [Option<Self>; 3] {
+    fn next_states(&self, map: &Map<Index, char>) -> [Option<Self>; 3] {
         [
             self.direction_is_clear(map, self.direction)
                 .then_some(State {
                     position: map
-                        .project_index_direction(self.position, self.direction)
+                        .project_direction(self.position, self.direction)
                         .unwrap(),
                     direction: self.direction,
                     score: self.score + 1,
@@ -145,10 +148,8 @@ impl State {
         ]
     }
 
-    fn direction_is_clear(&self, map: &Map<char>, direction: Direction4C) -> bool {
-        let new_position = map
-            .project_index_direction(self.position, direction)
-            .unwrap();
+    fn direction_is_clear(&self, map: &Map<Index, char>, direction: Direction) -> bool {
+        let new_position = map.project_direction(self.position, direction).unwrap();
         map.get(new_position) != Some(&'#')
     }
 }

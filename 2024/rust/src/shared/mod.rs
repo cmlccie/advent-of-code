@@ -3,5 +3,7 @@
 -------------------------------------------------------------------------------------------------*/
 
 pub mod answers;
+pub mod direction;
+pub mod grid_index;
 pub mod inputs;
 pub mod map;
