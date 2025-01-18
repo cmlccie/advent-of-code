@@ -1,4 +1,4 @@
-use crate::get_input;
+use crate::{get_input, GridDirection, GridIndex, GridMap};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -7,48 +7,53 @@ use std::path::PathBuf;
 -------------------------------------------------------------------------------------------------*/
 
 pub fn part1(input: &str) -> Option<String> {
-    let map = parse_input(input);
-
-    let start_position = find_guard_start_position(&map);
-    let mut guard = Guard::new(start_position, Direction::North);
+    let (map, mut guard) = parse_input(input);
 
     while guard.next(&map) != Action::Exit {}
 
-    let visited_positions: HashSet<(usize, usize)> =
+    let visited_positions: HashSet<Position> =
         guard.route.iter().map(|(position, _)| *position).collect();
 
     Some(visited_positions.len().to_string())
 }
 
 pub fn part2(input: &str) -> Option<String> {
-    let mut map = parse_input(input);
+    let (mut map, mut guard) = parse_input(input);
 
-    let start_position = find_guard_start_position(&map);
-    let mut guard = Guard::new(start_position, Direction::North);
-
-    while guard.next(&map) != Action::Exit {}
-    let mut possible_positions = guard.route;
-    possible_positions.remove(&(start_position, Direction::North));
-
+    let mut checked_positions = HashSet::new();
     let mut loop_obstruction_positions = HashSet::new();
 
-    for (position, _) in possible_positions {
-        let saved_tile = map.get(position.0, position.1).unwrap();
-        map.map[position.0][position.1] = '#';
+    loop {
+        if let Some(next_position) = map.project_direction(guard.position, guard.direction) {
+            let contents = map.get(next_position).copied();
+            if matches!(contents, Some('.')) && !checked_positions.contains(&next_position) {
+                let obstacle_position = next_position;
+                let original_tile = contents.unwrap();
 
-        let mut sim_guard = Guard::new(start_position, Direction::North);
-        loop {
-            match sim_guard.next(&map) {
-                Action::Loop => {
-                    loop_obstruction_positions.insert(position);
-                    break;
+                map.set(obstacle_position, '#').unwrap();
+
+                let mut virtual_guard = guard.clone();
+                loop {
+                    match virtual_guard.next(&map) {
+                        Action::Loop => {
+                            loop_obstruction_positions.insert(obstacle_position);
+                            break;
+                        }
+                        Action::Exit => break,
+                        _ => {}
+                    }
                 }
-                Action::Exit => break,
-                _ => {}
+
+                map.set(obstacle_position, original_tile).unwrap();
+                checked_positions.insert(obstacle_position);
             }
         }
 
-        map.map[position.0][position.1] = saved_tile;
+        match guard.next(&map) {
+            Action::Loop => break,
+            Action::Exit => break,
+            _ => continue,
+        }
     }
 
     Some(loop_obstruction_positions.len().to_string())
@@ -58,76 +63,31 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-fn parse_input(input: &str) -> Map {
-    let map: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
+type Index = i16;
+type Map = GridMap<Index, char>;
+type Position = GridIndex<Index>;
 
-    Map::new(map)
-}
-
-/*-----------------------------------------------------------------------------
-  Map
------------------------------------------------------------------------------*/
-
-struct Map {
-    map: Vec<Vec<char>>,
-    rows: usize,
-    columns: usize,
-}
-
-impl Map {
-    fn new(map: Vec<Vec<char>>) -> Self {
-        let rows = map.len();
-        let columns = map[0].len();
-        Self { map, rows, columns }
-    }
-
-    fn get(&self, row: usize, column: usize) -> Option<char> {
-        if row < self.rows && column < self.columns {
-            Some(self.map[row][column])
-        } else {
-            None
-        }
-    }
-
-    fn project(
-        &self,
-        coordinate: &(usize, usize),
-        direction: &Direction,
-    ) -> Option<(usize, usize)> {
-        let offset = direction.offset();
-
-        let new_coordinate = (
-            coordinate.0 as i32 + offset.0,
-            coordinate.1 as i32 + offset.1,
-        );
-
-        let new_coordinate = if new_coordinate.0 >= 0 && new_coordinate.1 >= 0 {
-            (new_coordinate.0 as usize, new_coordinate.1 as usize)
-        } else {
-            return None;
-        };
-
-        if new_coordinate.0 < self.rows && new_coordinate.1 < self.columns {
-            Some(new_coordinate)
-        } else {
-            None
-        }
-    }
+fn parse_input(input: &str) -> (GridMap<Index, char>, Guard) {
+    let map: GridMap<Index, char> = input.into();
+    let start_position = map.find(|c| c == &'^').unwrap();
+    let guard = Guard::new(start_position, GridDirection::Up);
+    (map, guard)
 }
 
 /*-----------------------------------------------------------------------------
   Guard
 -----------------------------------------------------------------------------*/
 
+#[derive(Debug, Clone)]
 struct Guard {
-    position: (usize, usize),
-    direction: Direction,
+    position: Position,
+    direction: GridDirection,
 
-    route: HashSet<((usize, usize), Direction)>,
+    route: HashSet<(GridIndex<Index>, GridDirection)>,
 }
 
 impl Guard {
-    fn new(position: (usize, usize), direction: Direction) -> Self {
+    fn new(position: Position, direction: GridDirection) -> Self {
         let mut route = HashSet::new();
         route.insert((position, direction));
 
@@ -139,24 +99,16 @@ impl Guard {
     }
 
     fn next(&mut self, map: &Map) -> Action {
-        let space_in_front = map
-            .project(&self.position, &self.direction)
-            .unwrap_or((map.rows, map.columns)); // Out of bounds
-
-        match map.get(space_in_front.0, space_in_front.1) {
+        let space_in_front = map.project_direction(self.position, self.direction);
+        match space_in_front.and_then(|position| map.get(position)) {
+            Some('#') => self.turn_right(),
+            Some(_) => self.move_to(space_in_front.unwrap()),
             None => Action::Exit,
-            Some('#') => self.turn(),
-            Some(_) => self.move_to(space_in_front),
         }
     }
 
-    fn turn(&mut self) -> Action {
-        self.direction = match self.direction {
-            Direction::North => Direction::East,
-            Direction::East => Direction::South,
-            Direction::South => Direction::West,
-            Direction::West => Direction::North,
-        };
+    fn turn_right(&mut self) -> Action {
+        self.direction = self.direction.turn_right();
 
         if self.in_loop() {
             return Action::Loop;
@@ -166,7 +118,7 @@ impl Guard {
         Action::Turn
     }
 
-    fn move_to(&mut self, new_position: (usize, usize)) -> Action {
+    fn move_to(&mut self, new_position: Position) -> Action {
         self.position = new_position;
 
         if self.in_loop() {
@@ -179,41 +131,6 @@ impl Guard {
 
     fn in_loop(&self) -> bool {
         self.route.contains(&(self.position, self.direction))
-    }
-}
-
-fn find_guard_start_position(map: &Map) -> (usize, usize) {
-    for row in 0..map.rows {
-        for column in 0..map.columns {
-            if map.get(row, column).unwrap() == '^' {
-                return (row, column);
-            }
-        }
-    }
-
-    panic!("Guard not found");
-}
-
-/*-----------------------------------------------------------------------------
-  Direction
------------------------------------------------------------------------------*/
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Direction {
-    North,
-    South,
-    East,
-    West,
-}
-
-impl Direction {
-    fn offset(&self) -> (i32, i32) {
-        match self {
-            Direction::North => (-1, 0),
-            Direction::South => (1, 0),
-            Direction::East => (0, 1),
-            Direction::West => (0, -1),
-        }
     }
 }
 
@@ -281,7 +198,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
             part2(&get_input("../data/day6/input.txt")),

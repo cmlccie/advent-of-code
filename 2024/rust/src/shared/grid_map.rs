@@ -54,6 +54,10 @@ where
         self.data.is_empty()
     }
 
+    /*-------------------------------------------------------------------------
+      Iteration Methods
+    -------------------------------------------------------------------------*/
+
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.data.iter()
     }
@@ -72,22 +76,9 @@ where
         self.data.chunks(self.bounds.column.try_into().unwrap())
     }
 
-    pub fn find<F>(&self, predicate: F) -> Option<GridIndex<I>>
-    where
-        F: FnMut(&T) -> bool,
-    {
-        let internal_index = self.data.iter().position(predicate)?;
-        self.grid_index(internal_index)
-    }
-
-    pub fn check_is_in_bounds(&self, index: GridIndex<I>) -> bool {
-        (I::zero()..self.bounds.row).contains(&index.row)
-            && (I::zero()..self.bounds.column).contains(&index.column)
-    }
-
-    pub fn is_in_bounds(&self, index: GridIndex<I>) -> Option<GridIndex<I>> {
-        self.check_is_in_bounds(index).then_some(index)
-    }
+    /*-------------------------------------------------------------------------
+      Value Methods
+    -------------------------------------------------------------------------*/
 
     pub fn get(&self, index: GridIndex<I>) -> Option<&T> {
         let internal_index = self.internal_index(index)?;
@@ -107,6 +98,22 @@ where
         Ok(())
     }
 
+    /*-------------------------------------------------------------------------
+      Search Methods
+    -------------------------------------------------------------------------*/
+
+    pub fn find<F>(&self, predicate: F) -> Option<GridIndex<I>>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let internal_index = self.data.iter().position(predicate)?;
+        self.grid_index(internal_index)
+    }
+
+    /*-------------------------------------------------------------------------
+      Projection Methods
+    -------------------------------------------------------------------------*/
+
     pub fn project_offset(
         &self,
         index: GridIndex<I>,
@@ -114,6 +121,24 @@ where
     ) -> Option<GridIndex<I>> {
         let new_index = index + offset;
         self.check_is_in_bounds(new_index).then_some(new_index)
+    }
+
+    pub fn get_offset(&self, index: GridIndex<I>, offset: GridIndex<I>) -> Option<&T> {
+        let new_index = index + offset;
+        self.get(new_index)
+    }
+
+    /*-------------------------------------------------------------------------
+      Index Methods
+    -------------------------------------------------------------------------*/
+
+    pub fn check_is_in_bounds(&self, index: GridIndex<I>) -> bool {
+        (I::zero()..self.bounds.row).contains(&index.row)
+            && (I::zero()..self.bounds.column).contains(&index.column)
+    }
+
+    pub fn is_in_bounds(&self, index: GridIndex<I>) -> Option<GridIndex<I>> {
+        self.check_is_in_bounds(index).then_some(index)
     }
 
     /*-------------------------------------------------------------------------
@@ -140,6 +165,10 @@ where
     }
 }
 
+/*-----------------------------------------------------------------------------
+  Direction Methods
+-----------------------------------------------------------------------------*/
+
 impl<I, T> GridMap<I, T>
 where
     I: Integer + Signed + Copy + TryInto<usize> + TryFrom<usize>,
@@ -153,6 +182,15 @@ where
     ) -> Option<GridIndex<I>> {
         let offset = direction.offset();
         self.project_offset(index, offset)
+    }
+
+    pub fn get_direction<D: AnyDirection<I>>(
+        &self,
+        index: GridIndex<I>,
+        direction: D,
+    ) -> Option<&T> {
+        let offset = direction.offset();
+        self.get_offset(index, offset)
     }
 }
 
