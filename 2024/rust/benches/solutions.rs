@@ -1,4 +1,4 @@
-use aoc24::shared::inputs::get_input;
+use aoc24::get_input;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 criterion_group!(benches, criterion_benchmark);

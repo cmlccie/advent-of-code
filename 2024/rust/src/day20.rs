@@ -1,7 +1,4 @@
-use crate::shared::direction::CompassDirection;
-use crate::shared::grid_index::GridIndex;
-use crate::shared::inputs::get_input;
-use crate::shared::map::Map;
+use crate::{get_input, GridDirection, GridIndex, GridMap};
 use cached::proc_macro::cached;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
@@ -33,17 +30,16 @@ pub fn part2(input: &str) -> Option<String> {
 
 type Index = i16;
 type Offset = GridIndex<Index>;
-type Direction = CompassDirection;
 
 type Time = i16;
 type CheatCount = usize;
 
-fn parse_input(input: &str) -> Map<Index, char> {
+fn parse_input(input: &str) -> GridMap<Index, char> {
     input.into()
 }
 
 fn count_cheats_that_save_time(
-    map: &Map<Index, char>,
+    map: &GridMap<Index, char>,
     cheat_max_time: Time,
     min_savings: Time,
 ) -> CheatCount {
@@ -83,7 +79,7 @@ fn count_cheats_that_save_time(
   Map Course
 -----------------------------------------------------------------------------*/
 
-fn map_course(map: &Map<Index, char>) -> Vec<GridIndex<Index>> {
+fn map_course(map: &GridMap<Index, char>) -> Vec<GridIndex<Index>> {
     let start = map.find(|&c| c == 'S').unwrap();
     let goal = map.find(|&c| c == 'E').unwrap();
     let mut position = start;
@@ -96,14 +92,14 @@ fn map_course(map: &Map<Index, char>) -> Vec<GridIndex<Index>> {
     course
 }
 
-fn next_position(map: &Map<Index, char>, course: &[GridIndex<Index>]) -> GridIndex<Index> {
+fn next_position(map: &GridMap<Index, char>, course: &[GridIndex<Index>]) -> GridIndex<Index> {
     let current_position = course.last().unwrap();
     let previous_position = if course.len() > 2 {
         course.get(course.len() - 2).unwrap()
     } else {
         current_position
     };
-    for direction in Direction::iter() {
+    for direction in GridDirection::iter() {
         if let Some(position) = map.project_direction(*current_position, direction) {
             if position == *previous_position {
                 continue;
@@ -117,7 +113,7 @@ fn next_position(map: &Map<Index, char>, course: &[GridIndex<Index>]) -> GridInd
     panic!("No next position found!");
 }
 
-fn position_is_track(map: &Map<Index, char>, position: GridIndex<Index>) -> bool {
+fn position_is_track(map: &GridMap<Index, char>, position: GridIndex<Index>) -> bool {
     map.get(position) != Some(&'#')
 }
 
@@ -126,7 +122,7 @@ fn position_is_track(map: &Map<Index, char>, position: GridIndex<Index>) -> bool
 -----------------------------------------------------------------------------*/
 
 fn find_cheats(
-    map: &Map<Index, char>,
+    map: &GridMap<Index, char>,
     course_index: &HashMap<GridIndex<Index>, Time>,
     start: GridIndex<Index>,
     duration: Time,
@@ -163,7 +159,7 @@ fn get_offsets(duration: Time) -> Vec<(Offset, Time)> {
 }
 
 fn reachable_positions(
-    map: &Map<Index, char>,
+    map: &GridMap<Index, char>,
     start: GridIndex<Index>,
     duration: Time,
 ) -> Vec<(GridIndex<Index>, Time)> {
@@ -209,7 +205,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     #[cfg_attr(not(feature = "slow_tests"), ignore)]

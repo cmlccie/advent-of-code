@@ -1,4 +1,4 @@
-use crate::shared::inputs::get_input;
+use crate::get_input;
 use cached::proc_macro::cached;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -354,7 +354,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     fn test_part1_example() {

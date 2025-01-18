@@ -1,7 +1,4 @@
-use crate::shared::direction::CompassDirection;
-use crate::shared::grid_index::GridIndex;
-use crate::shared::inputs::get_input;
-use crate::shared::map::Map;
+use crate::{get_input, GridDirection, GridIndex, GridMap};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::path::PathBuf;
@@ -12,7 +9,7 @@ use std::path::PathBuf;
 
 pub fn part1(input: &str) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
-    let mut map = Map::new(70 + 1, 70 + 1, '.');
+    let mut map = GridMap::new(70 + 1, 70 + 1, '.');
     for position in corrupted_memory_positions.iter().take(1024) {
         map.set(*position, '#').unwrap();
     }
@@ -24,7 +21,7 @@ pub fn part1(input: &str) -> Option<String> {
 
 pub fn part2(input: &str) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
-    let mut map = Map::new(70 + 1, 70 + 1, '.');
+    let mut map = GridMap::new(70 + 1, 70 + 1, '.');
 
     for position in corrupted_memory_positions.iter().take(1024) {
         map.set(*position, '#').unwrap();
@@ -54,7 +51,6 @@ pub fn part2(input: &str) -> Option<String> {
 
 type Index = i8;
 type Steps = u16;
-type Direction = CompassDirection;
 
 fn parse_input(input: &str) -> Vec<GridIndex<Index>> {
     input
@@ -69,7 +65,7 @@ fn parse_input(input: &str) -> Vec<GridIndex<Index>> {
 }
 
 // Use Dijkstra's algorithm to find the shortest paths from the start to the goal
-fn escape_route(map: &Map<Index, char>) -> Option<Steps> {
+fn escape_route(map: &GridMap<Index, char>) -> Option<Steps> {
     let start = (0, 0).into();
     let goal = (map.rows() - 1, map.columns() - 1).into();
 
@@ -117,12 +113,12 @@ struct State {
 }
 
 impl State {
-    fn next_states(&self, map: &Map<Index, char>) -> [Option<Self>; 4] {
+    fn next_states(&self, map: &GridMap<Index, char>) -> [Option<Self>; 4] {
         [
-            Direction::North,
-            Direction::South,
-            Direction::East,
-            Direction::West,
+            GridDirection::Up,
+            GridDirection::Down,
+            GridDirection::Right,
+            GridDirection::Left,
         ]
         .map(|direction| {
             let next_position = map.project_direction(self.position, direction)?;
@@ -134,7 +130,7 @@ impl State {
     }
 }
 
-fn position_is_clear(map: &Map<Index, char>, position: GridIndex<Index>) -> bool {
+fn position_is_clear(map: &GridMap<Index, char>, position: GridIndex<Index>) -> bool {
     map.get(position) != Some(&'#')
 }
 
@@ -179,7 +175,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 fn example_part1(input: &str) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
-    let mut map = Map::new(6 + 1, 6 + 1, '.');
+    let mut map = GridMap::new(6 + 1, 6 + 1, '.');
     for position in corrupted_memory_positions.iter().take(12) {
         map.set(*position, '#').unwrap();
     }
@@ -192,7 +188,7 @@ fn example_part1(input: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     fn test_example_part1() {

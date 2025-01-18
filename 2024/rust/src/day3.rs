@@ -1,4 +1,4 @@
-use crate::shared::inputs::get_input;
+use crate::get_input;
 use regex::Regex;
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -81,7 +81,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     fn test_example_solution_part1() {

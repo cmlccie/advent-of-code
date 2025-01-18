@@ -1,7 +1,4 @@
-use crate::shared::direction::{AnyDirection, GridDirection};
-use crate::shared::grid_index::GridIndex;
-use crate::shared::inputs::get_input;
-use crate::shared::map::Map;
+use crate::{get_input, AnyDirection, GridDirection, GridIndex, GridMap};
 use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
@@ -56,13 +53,13 @@ type Position = GridIndex<Index>;
 type Direction = GridDirection;
 type Answer = u32;
 
-fn parse_input(input: &str) -> (Map<Index, WarehouseItem>, Vec<Direction>) {
+fn parse_input(input: &str) -> (GridMap<Index, WarehouseItem>, Vec<Direction>) {
     let blank_line_index = input.find("\n\n").unwrap() + 1;
     let map_str = &input[..blank_line_index];
     let directions_str = &input[blank_line_index + 1..];
 
-    let warehouse: Map<Index, WarehouseItem> =
-        Map::from_char_map(map_str, |c| WarehouseItem::try_from(c).unwrap());
+    let warehouse: GridMap<Index, WarehouseItem> =
+        GridMap::from_char_map(map_str, |c| WarehouseItem::try_from(c).unwrap());
 
     let directions = directions_str
         .lines()
@@ -73,7 +70,7 @@ fn parse_input(input: &str) -> (Map<Index, WarehouseItem>, Vec<Direction>) {
     (warehouse, directions)
 }
 
-fn modify_warehouse(warehouse: &Map<Index, WarehouseItem>) -> Map<Index, WarehouseItem> {
+fn modify_warehouse(warehouse: &GridMap<Index, WarehouseItem>) -> GridMap<Index, WarehouseItem> {
     warehouse
         .rows_iter()
         .map(|row| {
@@ -89,7 +86,7 @@ fn modify_warehouse(warehouse: &Map<Index, WarehouseItem>) -> Map<Index, Warehou
         .collect()
 }
 
-fn calculate_gps_coordinates_sum(warehouse: &Map<Index, WarehouseItem>) -> Answer {
+fn calculate_gps_coordinates_sum(warehouse: &GridMap<Index, WarehouseItem>) -> Answer {
     warehouse
         .enumerate()
         .filter(|(_, item)| matches!(**item, WarehouseItem::Box | WarehouseItem::BigBoxLeft))
@@ -156,7 +153,11 @@ impl Robot {
         Self { position }
     }
 
-    fn attempt_move(&mut self, warehouse: &mut Map<Index, WarehouseItem>, direction: Direction) {
+    fn attempt_move(
+        &mut self,
+        warehouse: &mut GridMap<Index, WarehouseItem>,
+        direction: Direction,
+    ) {
         if item_at_position_can_move(warehouse, self.position, direction) {
             move_item(warehouse, self.position, direction);
 
@@ -174,7 +175,7 @@ impl Robot {
 // Treat the left-half of the big box as the left box as the controlling side
 
 fn item_at_position_can_move(
-    warehouse: &Map<Index, WarehouseItem>,
+    warehouse: &GridMap<Index, WarehouseItem>,
     position: Position,
     direction: Direction,
 ) -> bool {
@@ -193,7 +194,11 @@ fn item_at_position_can_move(
         .all(|&next_position| item_at_position_can_move(warehouse, next_position, direction))
 }
 
-fn move_item(warehouse: &mut Map<Index, WarehouseItem>, position: Position, direction: Direction) {
+fn move_item(
+    warehouse: &mut GridMap<Index, WarehouseItem>,
+    position: Position,
+    direction: Direction,
+) {
     let item = warehouse.get(position).unwrap().to_owned();
 
     if matches!(item, WarehouseItem::Empty) {
@@ -215,7 +220,7 @@ fn move_item(warehouse: &mut Map<Index, WarehouseItem>, position: Position, dire
 }
 
 fn move_single_item(
-    warehouse: &mut Map<Index, WarehouseItem>,
+    warehouse: &mut GridMap<Index, WarehouseItem>,
     position: Position,
     direction: Direction,
 ) {
@@ -227,7 +232,7 @@ fn move_single_item(
 }
 
 fn move_big_box(
-    warehouse: &mut Map<Index, WarehouseItem>,
+    warehouse: &mut GridMap<Index, WarehouseItem>,
     position: Position,
     direction: Direction,
 ) {
@@ -249,7 +254,7 @@ fn move_big_box(
 }
 
 fn next_positions(
-    warehouse: &Map<Index, WarehouseItem>,
+    warehouse: &GridMap<Index, WarehouseItem>,
     position: Position,
     direction: Direction,
 ) -> Vec<Position> {
@@ -275,7 +280,7 @@ fn next_positions(
 }
 
 fn big_box_positions(
-    warehouse: &Map<Index, WarehouseItem>,
+    warehouse: &GridMap<Index, WarehouseItem>,
     position: Position,
 ) -> (Position, Position) {
     let item_at_position = warehouse.get(position).unwrap().to_owned();
@@ -301,7 +306,7 @@ fn big_box_positions(
     }
 }
 
-fn map_move(warehouse: &mut Map<Index, WarehouseItem>, from: Position, to: Position) {
+fn map_move(warehouse: &mut GridMap<Index, WarehouseItem>, from: Position, to: Position) {
     assert_eq!(warehouse.get(to).unwrap(), &WarehouseItem::Empty);
     let item = warehouse.get(from).unwrap().to_owned();
     warehouse.set(from, WarehouseItem::Empty).unwrap();
@@ -333,7 +338,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     fn test_example_part1() {

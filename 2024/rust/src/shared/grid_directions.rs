@@ -5,8 +5,12 @@ use std::fmt::{Display, Formatter};
 use strum::EnumIter;
 
 /*-------------------------------------------------------------------------------------------------
-  Direction
+  Directions
 -------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------------------
+  AnyDirection Trait
+--------------------------------------------------------------------------------------*/
 
 pub trait AnyDirection<I>
 where
@@ -15,17 +19,51 @@ where
     fn offset(&self) -> GridIndex<I>;
 }
 
-/*-----------------------------------------------------------------------------
-  Grid Direction
------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------
+  GridDirection
+--------------------------------------------------------------------------------------*/
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
 pub enum GridDirection {
     Up,
     Down,
     Left,
     Right,
 }
+
+impl GridDirection {
+    pub fn turn_clockwise(&self) -> Self {
+        match self {
+            Self::Up => Self::Right,
+            Self::Right => Self::Down,
+            Self::Down => Self::Left,
+            Self::Left => Self::Up,
+        }
+    }
+
+    pub fn turn_counterclockwise(&self) -> Self {
+        match self {
+            Self::Up => Self::Left,
+            Self::Left => Self::Down,
+            Self::Down => Self::Right,
+            Self::Right => Self::Up,
+        }
+    }
+
+    #[inline(always)]
+    pub fn turn_right(&self) -> Self {
+        self.turn_clockwise()
+    }
+
+    #[inline(always)]
+    pub fn turn_left(&self) -> Self {
+        self.turn_counterclockwise()
+    }
+}
+
+/*-----------------------------------------------------------------------------
+  Implement AnyDirection
+-----------------------------------------------------------------------------*/
 
 impl<I: Signed> AnyDirection<I> for GridDirection {
     fn offset(&self) -> GridIndex<I> {
@@ -38,11 +76,19 @@ impl<I: Signed> AnyDirection<I> for GridDirection {
     }
 }
 
+/*-----------------------------------------------------------------------------
+  Display
+-----------------------------------------------------------------------------*/
+
 impl Display for GridDirection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", char::from(*self))
     }
 }
+
+/*-----------------------------------------------------------------------------
+  Type Conversions
+-----------------------------------------------------------------------------*/
 
 impl TryFrom<char> for GridDirection {
     type Error = Error;
@@ -65,49 +111,6 @@ impl From<GridDirection> for char {
             GridDirection::Down => 'v',
             GridDirection::Left => '<',
             GridDirection::Right => '>',
-        }
-    }
-}
-
-/*--------------------------------------------------------------------------------------
-  Compass Direction (4-Cardinal Directions)
---------------------------------------------------------------------------------------*/
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
-pub enum CompassDirection {
-    North,
-    East,
-    South,
-    West,
-}
-
-impl CompassDirection {
-    pub fn turn_left(&self) -> Self {
-        match self {
-            Self::North => Self::West,
-            Self::West => Self::South,
-            Self::South => Self::East,
-            Self::East => Self::North,
-        }
-    }
-
-    pub fn turn_right(&self) -> Self {
-        match self {
-            Self::North => Self::East,
-            Self::East => Self::South,
-            Self::South => Self::West,
-            Self::West => Self::North,
-        }
-    }
-}
-
-impl<I: Signed> AnyDirection<I> for CompassDirection {
-    fn offset(&self) -> GridIndex<I> {
-        match self {
-            Self::North => GridIndex::new(I::one().neg(), I::zero()),
-            Self::South => GridIndex::new(I::one(), I::zero()),
-            Self::East => GridIndex::new(I::zero(), I::one()),
-            Self::West => GridIndex::new(I::zero(), I::one().neg()),
         }
     }
 }

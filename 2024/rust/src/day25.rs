@@ -1,4 +1,4 @@
-use crate::shared::inputs::get_input;
+use crate::get_input;
 use core::panic;
 use itertools::Itertools;
 use std::path::PathBuf;
@@ -101,7 +101,7 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     fn test_parse_input_file() {

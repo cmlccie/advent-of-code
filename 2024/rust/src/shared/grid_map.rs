@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::shared::direction::AnyDirection;
+use crate::shared::grid_directions::AnyDirection;
 use crate::shared::grid_index::GridIndex;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
@@ -13,7 +13,7 @@ use std::fmt::{Display, Formatter};
 -------------------------------------------------------------------------------------------------*/
 
 #[derive(Debug)]
-pub struct Map<I, T>
+pub struct GridMap<I, T>
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -23,7 +23,7 @@ where
     bounds: GridIndex<I>,
 }
 
-impl<I, T> Map<I, T>
+impl<I, T> GridMap<I, T>
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -140,7 +140,7 @@ where
     }
 }
 
-impl<I, T> Map<I, T>
+impl<I, T> GridMap<I, T>
 where
     I: Integer + Signed + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -160,7 +160,7 @@ where
   Display Methods
 -----------------------------------------------------------------------------*/
 
-impl<I, T> Display for Map<I, T>
+impl<I, T> Display for GridMap<I, T>
 where
     T: Copy + Into<char>,
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
@@ -178,7 +178,7 @@ where
     }
 }
 
-impl<I> Map<I, char>
+impl<I> GridMap<I, char>
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -207,7 +207,7 @@ where
     }
 }
 
-impl<I> Map<I, char>
+impl<I> GridMap<I, char>
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize> + std::hash::Hash + Eq,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -236,7 +236,7 @@ where
   Conversion Trait Implementations
 --------------------------------------------------------------------------------------*/
 
-impl<R, I, T> FromIterator<R> for Map<I, T>
+impl<R, I, T> FromIterator<R> for GridMap<I, T>
 where
     R: IntoIterator<Item = T> + ExactSizeIterator,
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
@@ -273,7 +273,7 @@ where
     }
 }
 
-impl<I> From<&str> for Map<I, char>
+impl<I> From<&str> for GridMap<I, char>
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -300,7 +300,7 @@ where
     }
 }
 
-impl<I, T> Map<I, T>
+impl<I, T> GridMap<I, T>
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
@@ -327,14 +327,14 @@ where
     }
 }
 
-impl<I, T> From<Map<I, T>> for String
+impl<I, T> From<GridMap<I, T>> for String
 where
     I: Integer + Copy + TryInto<usize> + TryFrom<usize>,
     <I as TryInto<usize>>::Error: std::fmt::Debug,
     <I as TryFrom<usize>>::Error: std::fmt::Debug,
     T: Copy + Into<char>,
 {
-    fn from(map: Map<I, T>) -> String {
+    fn from(map: GridMap<I, T>) -> String {
         map.data
             .chunks(map.bounds.column.try_into().unwrap())
             .map(|row| row.iter().map(|&c| c.into()).collect::<String>())

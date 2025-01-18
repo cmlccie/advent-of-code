@@ -1,6 +1,4 @@
-use crate::shared::grid_index::GridIndex;
-use crate::shared::inputs::get_input;
-use crate::shared::map::Map;
+use crate::{get_input, GridIndex, GridMap};
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -54,7 +52,7 @@ const NEIGHBOR_OFFSETS: [Offset; 4] = [
     GridIndex::new(0, 1),
 ];
 
-fn parse_input(input: &str) -> Map<i16, char> {
+fn parse_input(input: &str) -> GridMap<i16, char> {
     input.into()
 }
 
@@ -86,7 +84,7 @@ fn calculate_region_area(region: &Region) -> Area {
     region.len().try_into().unwrap()
 }
 
-fn calculate_region_perimeter(map: &Map<Index, Plant>, region: &Region) -> Perimeter {
+fn calculate_region_perimeter(map: &GridMap<Index, Plant>, region: &Region) -> Perimeter {
     region
         .iter()
         .map(|plot| {
@@ -100,7 +98,7 @@ fn calculate_region_perimeter(map: &Map<Index, Plant>, region: &Region) -> Perim
         .sum()
 }
 
-fn calculate_region_sides(map: &Map<Index, Plant>, region: &Region) -> SideCount {
+fn calculate_region_sides(map: &GridMap<Index, Plant>, region: &Region) -> SideCount {
     let boundary_plots: HashSet<Plot> = region
         .iter()
         .filter(|index| {
@@ -194,7 +192,7 @@ fn fences_are_adjacent(fence0: Fence, fence1: Fence) -> bool {
 -----------------------------------------------------------------------------*/
 
 struct Regions<'m> {
-    map: &'m Map<Index, Plant>,
+    map: &'m GridMap<Index, Plant>,
 
     regions: HashMap<RegionID, Region>,
     plots: HashMap<Plot, RegionID>,
@@ -203,7 +201,7 @@ struct Regions<'m> {
 }
 
 impl<'m> Regions<'m> {
-    fn new(map: &'m Map<Index, Plant>) -> Self {
+    fn new(map: &'m GridMap<Index, Plant>) -> Self {
         Self {
             map,
             regions: HashMap::new(),
@@ -278,7 +276,7 @@ pub fn main(args: Args) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::answers::get_answer;
+    use crate::get_answer;
 
     #[test]
     fn test_example2_part1() {
