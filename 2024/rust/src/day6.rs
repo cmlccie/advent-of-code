@@ -198,6 +198,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
             part2(&get_input("../data/day6/input.txt")),
