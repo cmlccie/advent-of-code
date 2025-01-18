@@ -13,7 +13,11 @@ tests: tests-2024
 
 tests-slow: tests-slow-2024
 
+test-benches: tests-benches-2024
+
 build: build-2024
+
+bench: bench-2024
 
 # --------------------------------------------------------------------------------------
 # Repository Targets
@@ -38,6 +42,9 @@ tests-2024:
 
 tests-slow-2024:
 	cargo test --package aoc24 --features slow_tests
+
+tests-benches-2024:
+	cargo test --package aoc24 --benches
 
 build-2024: 2024/aoc
 
