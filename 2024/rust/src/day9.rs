@@ -1,5 +1,5 @@
 use crate::get_input;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::VecDeque;
 use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
@@ -15,6 +15,7 @@ pub fn part1(input: &str) -> Option<String> {
 
 pub fn part2(input: &str) -> Option<String> {
     let mut disk = parse_input(input);
+
     disk.compact_files();
 
     Some(disk.checksum().to_string())
@@ -33,207 +34,251 @@ fn parse_input(input: &str) -> Disk {
   Disk
 -----------------------------------------------------------------------------*/
 
-type FileId = u64;
-type BlockCount = u32;
-type BlockIndex = u64;
-type DiskCursor = BlockIndex;
+type FileId = u16;
+type BlockCount = u8;
+type BlockIndex = usize;
+type CheckSum = u64;
 
-enum Allocation {
-    File(BlockCount),
-    FreeSpace(BlockCount),
+#[derive(Debug, Clone, Copy)]
+struct FileAllocation {
+    id: FileId,
+    index: BlockIndex,
+    length: BlockCount,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct FreeSpaceAllocation {
+    index: BlockIndex,
+    length: BlockCount,
 }
 
 struct Disk {
-    files: BTreeMap<FileId, File>,
-    blocks: BTreeMap<DiskCursor, FileId>,
-
-    first_free_block_cache: DiskCursor,
+    files: Vec<FileAllocation>,
+    free_space: FreeSpaceAllocator,
+    blocks: Vec<Option<FileId>>,
 }
 
 impl Disk {
     fn new(dense_format: &str) -> Self {
-        let allocations: Vec<Allocation> = dense_format
-            .chars()
-            .map(|c| c.to_digit(10).unwrap())
-            .enumerate()
-            .map(|(index, digit)| {
-                if index % 2 == 0 {
-                    Allocation::File(digit)
-                } else {
-                    Allocation::FreeSpace(digit)
-                }
-            })
-            .collect();
+        let allocation_count = dense_format.len() / 2;
 
-        let mut files: BTreeMap<FileId, File> = BTreeMap::new();
-        let mut blocks: BTreeMap<DiskCursor, FileId> = BTreeMap::new();
-        allocate_files(&allocations, &mut files, &mut blocks);
+        let mut files = Vec::with_capacity(allocation_count);
+        let mut free_space = FreeSpaceAllocator::with_capacity(allocation_count);
+
+        let mut next_file_id: FileId = 0;
+        let mut next_block_index: usize = 0;
+
+        for (dense_index, allocation_length) in dense_format.chars().enumerate() {
+            let allocation_length = allocation_length.to_digit(10).unwrap() as BlockCount;
+
+            if dense_index % 2 == 0 {
+                files.push(FileAllocation {
+                    id: next_file_id,
+                    index: next_block_index,
+                    length: allocation_length,
+                });
+                next_file_id += 1;
+            } else {
+                free_space.push_back(FreeSpaceAllocation {
+                    index: next_block_index,
+                    length: allocation_length,
+                });
+            }
+
+            next_block_index += allocation_length as usize;
+        }
+
+        let blocks = vec![None; next_block_index];
 
         Self {
             files,
+            free_space,
             blocks,
-
-            first_free_block_cache: 0,
         }
     }
 
-    fn compact_blocks(&mut self) {
-        loop {
-            let last_block_index = *self.blocks.last_key_value().unwrap().0;
-            let first_free_index = self.get_first_free_block_index();
+    /*-------------------------------------------------------------------------
+      Part 1 Methods
+    -------------------------------------------------------------------------*/
 
-            // Exit if there are no more free blocks to the left of the last file block
-            if last_block_index < first_free_index {
+    fn compact_blocks(&mut self) {
+        self.allocate_files();
+
+        let mut first_free_block_index = self.next_free_block_index(0);
+        let mut last_file_block_index = self.next_file_block_index(self.blocks.len());
+
+        while first_free_block_index < last_file_block_index {
+            self.blocks
+                .swap(first_free_block_index, last_file_block_index);
+
+            first_free_block_index = self.next_free_block_index(first_free_block_index);
+            last_file_block_index = self.next_file_block_index(last_file_block_index);
+        }
+    }
+
+    fn next_free_block_index(&mut self, from: usize) -> BlockIndex {
+        self.blocks[from..]
+            .iter()
+            .position(|block| block.is_none())
+            .unwrap()
+            + from
+    }
+
+    fn next_file_block_index(&mut self, from: usize) -> BlockIndex {
+        self.blocks[..from]
+            .iter()
+            .rposition(|block| block.is_some())
+            .unwrap()
+    }
+
+    fn allocate_files(&mut self) {
+        while let Some(file) = self.files.pop() {
+            self.allocate_file(file);
+        }
+    }
+
+    fn allocate_file(&mut self, file: FileAllocation) {
+        for block_index in file.index..(file.index + file.length as usize) {
+            self.blocks[block_index] = Some(file.id);
+        }
+    }
+
+    /*-------------------------------------------------------------------------
+      Part 2 Methods
+    -------------------------------------------------------------------------*/
+
+    fn compact_files(&mut self) {
+        while let Some(mut file) = self.files.pop() {
+            if file.index < self.free_space.first_free_block_index() {
+                // Stop checking for free space
+                self.allocate_file(file);
                 break;
             }
 
-            // Move the last file block to the first free block
-            self.move_file_block(last_block_index, first_free_index);
-        }
-    }
+            // Find a free space allocation that can fit the file
+            let free_space = self.free_space.get(file);
 
-    fn compact_files(&mut self) {
-        let last_file_id = *self.files.last_key_value().unwrap().0;
+            if let Some(mut free_space) = free_space {
+                // Allocate the file
+                file.index = free_space.index;
+                self.allocate_file(file);
 
-        for file_id in (0..=last_file_id).rev() {
-            let free_index = {
-                let file = self.files.get(&file_id).unwrap();
-                self.find_free_range(file.length, file.lowest_index())
-            };
-
-            if let Some(free_index) = free_index {
-                self.move_file(file_id, free_index);
-                log::debug!("Moved file {} to index {}", file_id, free_index);
+                // Update the free space allocation
+                if free_space.length != file.length {
+                    free_space.index += file.length as usize;
+                    free_space.length -= file.length;
+                    self.free_space.insert(free_space);
+                }
             } else {
-                log::debug!(
-                    "Could not move file {}; no free range to left of file",
-                    file_id
-                );
-            }
-        }
-    }
-
-    fn get_first_free_block_index(&mut self) -> BlockIndex {
-        while self.blocks.contains_key(&self.first_free_block_cache) {
-            self.first_free_block_cache += 1;
-        }
-        self.first_free_block_cache
-    }
-
-    fn find_free_range(
-        &mut self,
-        length: BlockCount,
-        stop_index: BlockIndex,
-    ) -> Option<BlockIndex> {
-        let first_free_block = self.get_first_free_block_index();
-
-        for start_index in first_free_block..stop_index {
-            let range_is_free = (start_index..(start_index + length as BlockIndex))
-                .all(|index| !self.blocks.contains_key(&index));
-
-            if range_is_free {
-                return Some(start_index);
+                // Could not find a free space allocation that can fit the file
+                self.allocate_file(file);
             }
         }
 
-        None
+        // Allocate the remaining files
+        self.allocate_files();
     }
 
-    fn move_file_block(&mut self, from: BlockIndex, to: BlockIndex) {
-        assert!(!self.blocks.contains_key(&to)); // Verify destination block is free
-        let file_id = self.blocks.remove(&from).expect("File block exists");
+    /*-------------------------------------------------------------------------
+      Disk Checksum
+    -------------------------------------------------------------------------*/
 
-        // Update the file
-        self.files
-            .entry(file_id)
-            .and_modify(|file| file.move_block(from, to));
-
-        self.blocks.insert(to, file_id);
-    }
-
-    fn move_file(&mut self, file_id: FileId, to: BlockIndex) {
-        let file = self.files.get_mut(&file_id).expect("File exists");
-        let new_blocks = file
-            .blocks
-            .iter()
-            .zip(to..(to + file.length as BlockIndex))
-            .map(|(from, to)| {
-                assert!(!self.blocks.contains_key(&to)); // Destination must be free
-                let file_id = self.blocks.remove(from).expect("File block exists");
-                assert_eq!(file_id, file.id); // Source block must be from the file
-                self.blocks.insert(to, file_id);
-                to // Return the new block index
-            })
-            .collect();
-
-        file.blocks = new_blocks;
-    }
-
-    fn checksum(&self) -> u64 {
+    fn checksum(&self) -> CheckSum {
         self.blocks
             .iter()
-            .map(|(cursor, file_id)| *cursor * *file_id)
-            .sum()
-    }
-}
-
-/*-----------------------------------------------------------------------------
-  File
------------------------------------------------------------------------------*/
-
-struct File {
-    id: FileId,
-    length: BlockCount,
-    blocks: BTreeSet<BlockIndex>,
-}
-
-impl File {
-    fn new(id: FileId, length: BlockCount, cursor: BlockIndex) -> Self {
-        let blocks: BTreeSet<BlockIndex> = (cursor..(cursor + length as BlockIndex)).collect();
-        Self { id, length, blocks }
-    }
-
-    fn lowest_index(&self) -> BlockIndex {
-        *self.blocks.first().unwrap()
-    }
-
-    fn move_block(&mut self, from: BlockIndex, to: BlockIndex) {
-        assert!(self.blocks.remove(&from)); // Source block should exist
-        self.blocks.insert(to);
-    }
-}
-
-/*-----------------------------------------------------------------------------
-  Allocate Files
------------------------------------------------------------------------------*/
-
-fn allocate_files(
-    allocations: &[Allocation],
-    files: &mut BTreeMap<FileId, File>,
-    blocks: &mut BTreeMap<DiskCursor, FileId>,
-) {
-    let mut file_id: FileId = 0;
-    let mut cursor: DiskCursor = 0;
-
-    for allocation in allocations.iter() {
-        match allocation {
-            Allocation::File(length) => {
-                files.insert(file_id, File::new(file_id, *length, cursor));
-                let file = files.get(&file_id).unwrap();
-                for block in file.blocks.iter() {
-                    blocks.insert(*block, file.id);
+            .enumerate()
+            .fold(0, |acc, (index, block)| {
+                if let Some(file_id) = block {
+                    let index = index as CheckSum;
+                    let file_id = *file_id as CheckSum;
+                    acc + (index * file_id)
+                } else {
+                    acc
                 }
+            })
+    }
+}
 
-                file_id += 1;
-                cursor += *length as BlockIndex;
-            }
-            Allocation::FreeSpace(length) => {
-                cursor += *length as BlockIndex;
-            }
+/*-----------------------------------------------------------------------------
+  Free Space Allocator
+-----------------------------------------------------------------------------*/
+
+struct FreeSpaceAllocator {
+    queues: [VecDeque<FreeSpaceAllocation>; 10],
+}
+
+impl FreeSpaceAllocator {
+    fn with_capacity(allocations: usize) -> Self {
+        let queue_size = allocations / 8;
+        Self {
+            queues: [
+                VecDeque::with_capacity(0),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+                VecDeque::with_capacity(queue_size),
+            ],
         }
     }
-}
 
+    fn push_back(&mut self, allocation: FreeSpaceAllocation) {
+        if allocation.length == 0 {
+            return;
+        }
+
+        self.queues[allocation.length as usize].push_back(allocation);
+    }
+
+    fn insert(&mut self, allocation: FreeSpaceAllocation) {
+        if allocation.length == 0 {
+            return;
+        }
+
+        let index = self.queues[allocation.length as usize]
+            .iter()
+            .position(|existing_allocation| existing_allocation.index > allocation.index);
+
+        if let Some(index) = index {
+            self.queues[allocation.length as usize].insert(index, allocation);
+        } else {
+            self.queues[allocation.length as usize].push_back(allocation);
+        }
+    }
+
+    fn first_free_block_index(&self) -> BlockIndex {
+        self.queues
+            .iter()
+            .filter_map(|queue| queue.front())
+            .map(|allocation| allocation.index)
+            .min()
+            .unwrap()
+    }
+
+    fn get(&mut self, file: FileAllocation) -> Option<FreeSpaceAllocation> {
+        let selected_allocation = self.queues[file.length as usize..]
+            .iter()
+            .map(|queue| queue.front())
+            .filter(|allocation| allocation.is_some() && allocation.unwrap().index < file.index)
+            .fold(None, |acc, allocation| match (acc, allocation) {
+                (_, None) => acc,
+                (None, Some(_)) => allocation,
+                (Some(acc), Some(allocation)) => {
+                    if acc.index < allocation.index {
+                        Some(acc)
+                    } else {
+                        Some(allocation)
+                    }
+                }
+            })?;
+
+        self.queues[selected_allocation.length as usize].pop_front()
+    }
+}
 /*-------------------------------------------------------------------------------------------------
   CLI
 -------------------------------------------------------------------------------------------------*/
@@ -270,14 +315,6 @@ mod tests {
     }
 
     #[test]
-    fn test_example_solution_part2() {
-        assert_eq!(
-            part2(&get_input("../data/day9/example.txt")),
-            get_answer("../data/day9/example-part2-answer.txt")
-        );
-    }
-
-    #[test]
     fn test_part1_solution() {
         assert_eq!(
             part1(&get_input("../data/day9/input.txt")),
@@ -286,7 +323,14 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "slow_tests"), ignore)]
+    fn test_example_solution_part2() {
+        assert_eq!(
+            part2(&get_input("../data/day9/example.txt")),
+            get_answer("../data/day9/example-part2-answer.txt")
+        );
+    }
+
+    #[test]
     fn test_part2_solution() {
         assert_eq!(
             part2(&get_input("../data/day9/input.txt")),
