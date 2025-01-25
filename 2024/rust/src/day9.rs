@@ -15,7 +15,6 @@ pub fn part1(input: &str) -> Option<String> {
 
 pub fn part2(input: &str) -> Option<String> {
     let mut disk = parse_input(input);
-
     disk.compact_files();
 
     Some(disk.checksum().to_string())
@@ -279,6 +278,7 @@ impl FreeSpaceAllocator {
         self.queues[selected_allocation.length as usize].pop_front()
     }
 }
+
 /*-------------------------------------------------------------------------------------------------
   CLI
 -------------------------------------------------------------------------------------------------*/
