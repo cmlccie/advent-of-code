@@ -70,8 +70,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     bench_solution!(c, aoc24::day16::part2, "../data/day16/input.txt");
     bench_solution!(c, aoc24::day17::part1, "../data/day17/input.txt");
     bench_solution!(c, aoc24::day17::part2, "../data/day17/input.txt");
-    bench_solution!(c, aoc24::day18::part1, "../data/day18/input.txt");
-    bench_solution!(c, aoc24::day18::part2, "../data/day18/input.txt");
+    bench_solution!(c, aoc24::day18::part1, "../data/day18/input.txt", 70, 1024);
+    bench_solution!(c, aoc24::day18::part2, "../data/day18/input.txt", 70, 1024);
     bench_solution!(c, aoc24::day19::part1, "../data/day19/input.txt");
     bench_solution!(c, aoc24::day19::part2, "../data/day19/input.txt");
     bench_solution!(c, aoc24::day20::part1, "../data/day20/input.txt");

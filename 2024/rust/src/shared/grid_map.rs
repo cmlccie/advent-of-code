@@ -85,6 +85,14 @@ where
         Some(&self.data[internal_index])
     }
 
+    pub fn get_index_and_value(&self, index: GridIndex<I>) -> (Option<GridIndex<I>>, Option<&T>) {
+        let internal_index = self.internal_index(index);
+        let index = internal_index.map(|_| index);
+        let value = internal_index.map(|internal_index| &self.data[internal_index]);
+
+        (index, value)
+    }
+
     pub fn get_mut(&mut self, index: GridIndex<I>) -> Option<&mut T> {
         let internal_index = self.internal_index(index)?;
         Some(&mut self.data[internal_index])
@@ -191,6 +199,15 @@ where
     ) -> Option<&T> {
         let offset = direction.offset();
         self.get_offset(index, offset)
+    }
+
+    pub fn get_direction_index_and_value<D: AnyDirection<I>>(
+        &self,
+        index: GridIndex<I>,
+        direction: D,
+    ) -> (Option<GridIndex<I>>, Option<&T>) {
+        let offset = direction.offset();
+        self.get_index_and_value(index + offset)
     }
 }
 

@@ -1,37 +1,57 @@
 use crate::{get_input, GridDirection, GridIndex, GridMap};
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashSet};
 use std::path::PathBuf;
 
 /*-------------------------------------------------------------------------------------------------
   Day 18: RAM Run
 -------------------------------------------------------------------------------------------------*/
 
-pub fn part1(input: &str) -> Option<String> {
+pub fn part1(input: &str, grid_size: Index, initial_corrupt_blocks: usize) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
-    let mut map = GridMap::new(70 + 1, 70 + 1, '.');
-    for position in corrupted_memory_positions.iter().take(1024) {
+    let mut map = GridMap::new(grid_size + 1, grid_size + 1, '.');
+    for position in corrupted_memory_positions
+        .iter()
+        .take(initial_corrupt_blocks)
+    {
         map.set(*position, '#').unwrap();
     }
 
-    let number_of_steps_to_exit = escape_route(&map);
+    let (steps_to_exit, _) = escape_route(&map).unwrap();
 
-    number_of_steps_to_exit.map(|steps| steps.to_string())
+    Some(steps_to_exit.to_string())
 }
 
-pub fn part2(input: &str) -> Option<String> {
+pub fn part2(input: &str, grid_size: Index, initial_corrupt_blocks: usize) -> Option<String> {
     let corrupted_memory_positions = parse_input(input);
-    let mut map = GridMap::new(70 + 1, 70 + 1, '.');
+    let mut map = GridMap::new(grid_size + 1, grid_size + 1, '.');
 
-    for position in corrupted_memory_positions.iter().take(1024) {
+    for position in corrupted_memory_positions
+        .iter()
+        .take(initial_corrupt_blocks)
+    {
         map.set(*position, '#').unwrap();
     }
 
-    let mut death_block: GridIndex<Index> = GridIndex::new(0, 0);
+    let mut death_block: Position = Position::new(0, 0);
+    let mut current_escape_route = escape_route(&map).map(|(_, route)| route);
 
-    for position in corrupted_memory_positions.iter().skip(1024) {
+    for position in corrupted_memory_positions
+        .iter()
+        .skip(initial_corrupt_blocks)
+    {
         map.set(*position, '#').unwrap();
-        if escape_route(&map).is_none() {
+
+        if current_escape_route
+            .as_ref()
+            .map(|route| route.contains(position))
+            .unwrap_or(false)
+        {
+            // Previous route blocked; try to find a new escape route
+            current_escape_route = escape_route(&map).map(|(_, route)| route);
+        }
+
+        if current_escape_route.is_none() {
             death_block = *position;
             break;
         };
@@ -49,10 +69,12 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-type Index = i8;
+type Index = i16;
+type Position = GridIndex<Index>;
 type Steps = u16;
+type Route = HashSet<Position>;
 
-fn parse_input(input: &str) -> Vec<GridIndex<Index>> {
+fn parse_input(input: &str) -> Vec<Position> {
     input
         .lines()
         .map(|line| {
@@ -65,41 +87,53 @@ fn parse_input(input: &str) -> Vec<GridIndex<Index>> {
 }
 
 // Use Dijkstra's algorithm to find the shortest paths from the start to the goal
-fn escape_route(map: &GridMap<Index, char>) -> Option<Steps> {
-    let start = (0, 0).into();
-    let goal = (map.rows() - 1, map.columns() - 1).into();
+fn escape_route(map: &GridMap<Index, char>) -> Option<(Steps, Route)> {
+    let start: Position = (0, 0).into();
+    let goal: Position = (map.rows() - 1, map.columns() - 1).into();
 
-    let mut dist: HashMap<GridIndex<Index>, Steps> = HashMap::new();
-    let mut prev: HashMap<GridIndex<Index>, GridIndex<Index>> = HashMap::new();
+    let mut dist: GridMap<Index, Steps> = GridMap::new(map.rows(), map.columns(), Steps::MAX);
+    let mut prev: GridMap<Index, Option<Position>> = GridMap::new(map.rows(), map.columns(), None);
     let mut heap: BinaryHeap<State> = BinaryHeap::new();
 
-    let initial = State {
-        position: start,
-        steps: 0,
-    };
-    dist.insert(initial.position, initial.steps);
+    let initial = State::new(start, 0, goal);
+    dist.set(initial.position, initial.steps).unwrap();
     heap.push(initial);
     while let Some(current) = heap.pop() {
         if current.position == goal {
             break;
         }
 
-        let current_tile_best_steps = *dist.get(&current.position).unwrap_or(&Steps::MAX);
+        let current_tile_best_steps = *dist.get(current.position).unwrap();
         if current.steps > current_tile_best_steps {
             continue;
         }
 
-        for next in current.next_states(map).iter().filter_map(|s| *s) {
-            let next_tile_best_steps = *dist.get(&next.position).unwrap_or(&Steps::MAX);
+        for next in current.next_states(map) {
+            let next_tile_best_steps = *dist.get(next.position).unwrap_or(&Steps::MAX);
             if next.steps < next_tile_best_steps {
-                dist.insert(next.position, next.steps);
-                prev.insert(next.position, current.position);
+                dist.set(next.position, next.steps).unwrap();
+                prev.set(next.position, Some(current.position)).unwrap();
                 heap.push(next);
             }
         }
     }
 
-    dist.get(&goal).copied()
+    if let Some(steps) = dist.get(goal).copied() {
+        // Reconstruct the route
+        let route = {
+            let mut route = Route::new();
+            let mut current = goal;
+            while let Some(previous) = prev.get(current).unwrap() {
+                route.insert(current);
+                current = *previous;
+            }
+            route
+        };
+
+        Some((steps, route))
+    } else {
+        None
+    }
 }
 
 /*-----------------------------------------------------------------------------
@@ -108,39 +142,51 @@ fn escape_route(map: &GridMap<Index, char>) -> Option<Steps> {
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct State {
-    position: GridIndex<Index>,
+    position: Position,
     steps: Steps,
+    goal: Position,
+    distance_to_goal: Index,
 }
 
 impl State {
-    fn next_states(&self, map: &GridMap<Index, char>) -> [Option<Self>; 4] {
+    fn new(position: Position, steps: Steps, goal: Position) -> Self {
+        Self {
+            position,
+            steps,
+            goal,
+            distance_to_goal: position.manhattan_distance(goal),
+        }
+    }
+
+    fn next_states<'g>(
+        &self,
+        map: &'g GridMap<Index, char>,
+    ) -> impl Iterator<Item = State> + use<'g, '_> {
         [
-            GridDirection::Up,
             GridDirection::Down,
             GridDirection::Right,
+            GridDirection::Up,
             GridDirection::Left,
         ]
-        .map(|direction| {
-            let next_position = map.project_direction(self.position, direction)?;
-            position_is_clear(map, next_position).then_some(State {
-                position: next_position,
-                steps: self.steps + 1,
+        .iter()
+        .filter_map(|direction| {
+            let (next_position, next_tile) =
+                map.get_direction_index_and_value(self.position, *direction);
+            next_position.and_then(|next_position| {
+                (next_tile != Some(&'#')).then_some(State::new(
+                    next_position,
+                    self.steps + 1,
+                    self.goal,
+                ))
             })
         })
     }
 }
 
-fn position_is_clear(map: &GridMap<Index, char>, position: GridIndex<Index>) -> bool {
-    map.get(position) != Some(&'#')
-}
-
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reverse ordering to make the heap a min-heap
-        other
-            .steps
-            .cmp(&self.steps)
-            .then_with(|| self.position.cmp(&other.position))
+        // Reverse the comparison to make the heap a min-heap
+        (other.steps, other.distance_to_goal).cmp(&(self.steps, self.distance_to_goal))
     }
 }
 
@@ -157,33 +203,44 @@ impl PartialOrd for State {
 #[derive(clap::Subcommand)]
 #[command(long_about = "Day 18: RAM Run")]
 pub enum Args {
-    Part1 { input: PathBuf },
-    Part2 { input: PathBuf },
+    Part1 {
+        input: PathBuf,
+
+        #[clap(short, long, default_value = "70")]
+        grid_size: Index,
+
+        #[clap(short, long, default_value = "1024")]
+        initial_corrupt_blocks: usize,
+    },
+    Part2 {
+        input: PathBuf,
+
+        #[clap(short, long, default_value = "70")]
+        grid_size: Index,
+
+        #[clap(short, long, default_value = "1024")]
+        initial_corrupt_blocks: usize,
+    },
 }
 
 pub fn main(args: Args) -> Option<String> {
     match args {
-        Args::Part1 { input } => part1(&get_input(&input)),
-        Args::Part2 { input } => part2(&get_input(&input)),
+        Args::Part1 {
+            input,
+            grid_size,
+            initial_corrupt_blocks,
+        } => part1(&get_input(&input), grid_size, initial_corrupt_blocks),
+        Args::Part2 {
+            input,
+            grid_size,
+            initial_corrupt_blocks,
+        } => part2(&get_input(&input), grid_size, initial_corrupt_blocks),
     }
 }
 
 /*-------------------------------------------------------------------------------------------------
   Tests
 -------------------------------------------------------------------------------------------------*/
-
-#[cfg(test)]
-fn example_part1(input: &str) -> Option<String> {
-    let corrupted_memory_positions = parse_input(input);
-    let mut map = GridMap::new(6 + 1, 6 + 1, '.');
-    for position in corrupted_memory_positions.iter().take(12) {
-        map.set(*position, '#').unwrap();
-    }
-
-    let number_of_steps_to_exit = escape_route(&map);
-
-    number_of_steps_to_exit.map(|steps| steps.to_string())
-}
 
 #[cfg(test)]
 mod tests {
@@ -193,7 +250,7 @@ mod tests {
     #[test]
     fn test_example_part1() {
         assert_eq!(
-            example_part1(&get_input("../data/day18/example.txt")),
+            part1(&get_input("../data/day18/example.txt"), 6, 12),
             get_answer("../data/day18/example-part1-answer.txt")
         );
     }
@@ -201,7 +258,7 @@ mod tests {
     #[test]
     fn test_part1_solution() {
         assert_eq!(
-            part1(&get_input("../data/day18/input.txt")),
+            part1(&get_input("../data/day18/input.txt"), 70, 1024),
             get_answer("../data/day18/input-part1-answer.txt")
         );
     }
@@ -210,7 +267,7 @@ mod tests {
     #[cfg_attr(not(feature = "slow_tests"), ignore)]
     fn test_part2_solution() {
         assert_eq!(
-            part2(&get_input("../data/day18/input.txt")),
+            part2(&get_input("../data/day18/input.txt"), 70, 1024),
             get_answer("../data/day18/input-part2-answer.txt")
         );
     }

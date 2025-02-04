@@ -17,6 +17,25 @@ impl<I> GridIndex<I> {
     pub const fn new(row: I, column: I) -> Self {
         Self { row, column }
     }
+
+    pub fn manhattan_distance(&self, other: Self) -> I
+    where
+        I: PartialOrd + Add<Output = I> + Sub<Output = I> + Copy,
+    {
+        let rows = if self.row > other.row {
+            self.row - other.row
+        } else {
+            other.row - self.row
+        };
+
+        let columns = if self.column > other.column {
+            self.column - other.column
+        } else {
+            other.column - self.column
+        };
+
+        rows + columns
+    }
 }
 
 /*--------------------------------------------------------------------------------------
