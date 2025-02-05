@@ -1,6 +1,5 @@
 use crate::get_input;
-use std::collections::{HashMap, HashSet};
-use std::iter::once;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -9,22 +8,29 @@ use std::rc::Rc;
 -------------------------------------------------------------------------------------------------*/
 
 pub fn part1(input: &str) -> Option<String> {
-    let (_, connections) = parse_input(input);
-    let node_map = build_node_graph(connections);
-
-    let network_count = identify_sets_of_three_connected_nodes(&node_map)
-        .iter()
-        .filter(|nodes| nodes.iter().any(|node| node.starts_with("t")))
-        .count();
-
+    let node_graph = parse_input(input);
+    let network_count = count_sets_of_three_mutually_connected_nodes(&node_graph);
     Some(network_count.to_string())
 }
 
 pub fn part2(input: &str) -> Option<String> {
-    let (_, connections) = parse_input(input);
-    let node_map = build_node_graph(connections);
+    let node_graph = parse_input(input);
 
-    let largest_network = find_largest_network(&node_map);
+    let largest_network = node_graph
+        .iter()
+        .map(|node| find_largest_network(&node_graph, vec![node.id]))
+        .fold(Network::new(), |acc, network| {
+            if network.len() > acc.len() {
+                network
+            } else {
+                acc
+            }
+        });
+
+    let largest_network: Vec<Rc<str>> = largest_network
+        .iter()
+        .map(|id| node_graph.nodes[*id].name.clone())
+        .collect();
 
     Some(largest_network.join(","))
 }
@@ -33,122 +39,150 @@ pub fn part2(input: &str) -> Option<String> {
   Core
 --------------------------------------------------------------------------------------*/
 
-type Node = Rc<str>;
-type NodeTriple = [Node; 3];
-type Network = Vec<Node>;
-type Connection = (Node, Node);
-type NodeSet = HashSet<Node>;
-type NodeMap = HashMap<Node, NodeSet>;
+type NodeName = Rc<str>;
+type NodeID = usize;
 
-fn parse_input(input: &str) -> (NodeSet, Vec<Connection>) {
-    let mut nodes = NodeSet::new();
+type NodeCount = usize;
+type Network = Vec<NodeID>;
 
-    let connections: Vec<Connection> = input
-        .lines()
-        .map(|line| {
-            let mut split = line.split('-');
-            let n1 = split.next().unwrap();
-            let n2 = split.next().unwrap();
-            let n1 = git_or_insert(&mut nodes, n1);
-            let n2 = git_or_insert(&mut nodes, n2);
-            (n1, n2)
-        })
+fn parse_input(input: &str) -> NodeGraph {
+    let mut temp_graph: BTreeMap<NodeName, BTreeSet<NodeName>> = BTreeMap::new();
+
+    for line in input.lines() {
+        let mut split = line.split('-');
+        let n1 = split.next().unwrap();
+        let n2 = split.next().unwrap();
+        temp_graph.entry(n1.into()).or_default().insert(n2.into());
+        temp_graph.entry(n2.into()).or_default().insert(n1.into());
+    }
+
+    let name_index: HashMap<NodeName, NodeID> = temp_graph
+        .keys()
+        .enumerate()
+        .map(|(index, node_name)| (node_name.clone(), index))
         .collect();
 
-    (nodes, connections)
+    temp_graph
+        .into_iter()
+        .map(|(node_name, connections)| {
+            Node::new(
+                node_name.clone(),
+                *name_index.get(&node_name).unwrap(),
+                connections
+                    .into_iter()
+                    .map(|connected_node| *name_index.get(&connected_node).unwrap())
+                    .collect(),
+            )
+        })
+        .collect()
 }
 
-fn git_or_insert(node_set: &mut NodeSet, node: &str) -> Node {
-    if let Some(existing_node) = node_set.get(node) {
-        existing_node.clone()
-    } else {
-        let new_node: Rc<str> = Rc::from(node);
-        node_set.insert(new_node.clone());
-        new_node
+/*--------------------------------------------------------------------------------------
+  Node Graph
+--------------------------------------------------------------------------------------*/
+
+struct NodeGraph {
+    nodes: Vec<Node>,
+}
+
+impl NodeGraph {
+    fn iter(&self) -> impl Iterator<Item = &Node> {
+        self.nodes.iter()
+    }
+
+    fn forward_nodes<'g, 'n>(
+        &'g self,
+        node: &'n Node,
+    ) -> impl Iterator<Item = &'g Node> + use<'g, 'n> {
+        node.forward_connections().iter().map(|&id| &self.nodes[id])
+    }
+}
+
+impl FromIterator<Node> for NodeGraph {
+    fn from_iter<I: IntoIterator<Item = Node>>(iter: I) -> Self {
+        let nodes: Vec<Node> = iter.into_iter().collect();
+        Self { nodes }
     }
 }
 
 /*-----------------------------------------------------------------------------
-  Build Node Graph
+  Node
 -----------------------------------------------------------------------------*/
 
-fn build_node_graph(connections: Vec<Connection>) -> NodeMap {
-    let mut node_map = NodeMap::new();
+struct Node {
+    name: NodeName,
+    id: NodeID,
+    connections: Vec<NodeID>,
+    forward_index: usize,
+}
 
-    for (n1, n2) in connections {
-        let n1_connections = node_map.entry(n1.clone()).or_default();
-        n1_connections.insert(n2.clone());
+impl Node {
+    fn new(name: NodeName, id: NodeID, connections: Vec<NodeID>) -> Self {
+        let index_greater_than_self = connections
+            .iter()
+            .position(|&connection| connection > id)
+            .unwrap_or(connections.len());
 
-        let n2_connections = node_map.entry(n2.clone()).or_default();
-        n2_connections.insert(n1.clone());
+        Self {
+            name,
+            id,
+            connections,
+            forward_index: index_greater_than_self,
+        }
     }
 
-    node_map
+    fn forward_connections(&self) -> &[NodeID] {
+        &self.connections[self.forward_index..]
+    }
+
+    fn connects_to(&self, id: &NodeID) -> bool {
+        self.connections.binary_search(id).is_ok()
+    }
 }
 
 /*-----------------------------------------------------------------------------
-  Identify Sets of Three Mutually Connected Nodes
+  Identify Sets of Three Mutually Connected Nodes That Contain a `t*` Node
 -----------------------------------------------------------------------------*/
 
-fn identify_sets_of_three_connected_nodes(node_map: &NodeMap) -> HashSet<NodeTriple> {
-    let mut triples: HashSet<NodeTriple> = HashSet::new();
-    for n1 in node_map.keys() {
-        for n2 in node_map.get(n1).unwrap() {
-            for n3 in node_map.get(n2).unwrap() {
-                if node_map.get(n3).unwrap().contains(n1) {
-                    let mut nodes: NodeTriple = [n1.clone(), n2.clone(), n3.clone()];
-                    nodes.sort();
-                    triples.insert(nodes);
+fn count_sets_of_three_mutually_connected_nodes(node_graph: &NodeGraph) -> NodeCount {
+    let mut count = 0;
+
+    for n1 in node_graph.iter() {
+        for n2 in node_graph.forward_nodes(n1) {
+            for n3 in node_graph.forward_nodes(n2) {
+                if n3.connects_to(&n1.id)
+                    && [n1, n2, n3].iter().any(|node| node.name.starts_with("t"))
+                {
+                    count += 1;
                 }
             }
         }
     }
 
-    triples
+    count
 }
 
 /*-----------------------------------------------------------------------------
   Identify Largest Set of Mutually Connected Nodes
 -----------------------------------------------------------------------------*/
 
-fn find_largest_network(node_map: &NodeMap) -> Network {
-    let mut networks: HashSet<Network> = HashSet::new();
-    let mut largest_network: Network = Network::new();
-
-    for start_node in node_map.keys() {
-        let connected_nodes = node_map.get(start_node).unwrap();
-        let mut stack = vec![(vec![start_node.clone()], once(start_node.clone()).collect())];
-        while let Some((current_network, current_nodes)) = stack.pop() {
-            if networks.contains(&current_network) {
-                continue;
+fn find_largest_network(node_graph: &NodeGraph, network: Network) -> Network {
+    let current_node = node_graph.nodes.get(*network.last().unwrap()).unwrap();
+    node_graph
+        .forward_nodes(current_node)
+        .filter(|next_node| network.iter().all(|id| next_node.connects_to(id)))
+        .map(|next_node| {
+            let mut new_network = network.clone();
+            new_network.push(next_node.id);
+            find_largest_network(node_graph, new_network)
+        })
+        .fold(network.clone(), |acc, network| {
+            if network.len() > acc.len() {
+                network
+            } else {
+                acc
             }
-
-            let remaining_nodes = connected_nodes - &current_nodes;
-
-            for next_node in remaining_nodes {
-                let next_node_connections = node_map.get(&next_node).unwrap();
-                if next_node_connections.intersection(&current_nodes).count() == current_nodes.len()
-                {
-                    // Next node is connected to all nodes in the current network
-                    let mut next_nodes = current_nodes.clone();
-                    next_nodes.insert(next_node.clone());
-
-                    let mut next_network: Network = next_nodes.iter().cloned().collect();
-                    next_network.sort();
-
-                    stack.push((next_network, next_nodes));
-                }
-            }
-
-            if current_network.len() > largest_network.len() {
-                largest_network = current_network.clone();
-            }
-
-            networks.insert(current_network);
-        }
-    }
-
-    largest_network
+        })
 }
 
 /*-------------------------------------------------------------------------------------------------
