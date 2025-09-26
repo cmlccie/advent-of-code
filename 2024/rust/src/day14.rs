@@ -1,7 +1,8 @@
 use crate::get_input;
 use regex::Regex;
-use std::collections::HashMap;
 use std::path::PathBuf;
+
+const Z_SCORE_THRESHOLD: f64 = 5.0;
 
 /*-------------------------------------------------------------------------------------------------
   Day 14: Restroom Redoubt
@@ -9,11 +10,9 @@ use std::path::PathBuf;
 
 pub fn part1(input: &str, width: isize, height: isize) -> Option<String> {
     let lobby = Lobby::new(width, height);
-    let mut robots = parse_input(input);
+    let robots = parse_input(input);
 
-    for _ in 0..100 {
-        robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
-    }
+    let robots = move_robots(&robots, 100, &lobby);
 
     let safety_factor = calculate_safety_factor(&robots, &lobby);
 
@@ -22,20 +21,70 @@ pub fn part1(input: &str, width: isize, height: isize) -> Option<String> {
 
 pub fn part2(input: &str, visualize: bool) -> Option<String> {
     let lobby = Lobby::new(101, 103);
-    let mut robots = parse_input(input);
+    let robots = parse_input(input);
 
-    let mut first_christmas_tree: usize = 0;
+    let mut running_xy_mean: Option<(f64, f64)> = None;
+    let mut running_xy_variance: Option<(f64, f64)> = None;
 
-    for second in 0.. {
-        if second > 47 && ((second - 47) % 103 == 0) && ((second - 82) % 101 == 0) {
-            first_christmas_tree = second;
+    let mut first_x_spike: Option<usize> = None;
+    let mut first_y_spike: Option<usize> = None;
+    let mut second_x_spike: Option<usize> = None;
+    let mut second_y_spike: Option<usize> = None;
+
+    for second in 0..1000 {
+        let robots = move_robots(&robots, second, &lobby);
+
+        let xy_mean = calculate_xy_mean(&robots);
+        let xy_variance = calculate_xy_variance(&robots, xy_mean);
+
+        running_xy_mean = update_running_mean(running_xy_mean, xy_mean, second + 1);
+        running_xy_variance = update_running_mean(running_xy_variance, xy_variance, second + 1);
+
+        let running_xy_variance_standard_deviation =
+            calculate_xy_standard_deviation(running_xy_variance.unwrap());
+
+        let xy_variance_z_score = calculate_xy_z_score(
+            xy_variance,
+            running_xy_variance.unwrap(),
+            running_xy_variance_standard_deviation,
+        );
+
+        let (x_spike, y_spike) = (
+            xy_variance_z_score.0 > Z_SCORE_THRESHOLD,
+            xy_variance_z_score.1 > Z_SCORE_THRESHOLD,
+        );
+
+        (first_x_spike, second_x_spike) = match (x_spike, first_x_spike, second_x_spike) {
+            (true, None, None) => (Some(second), None),
+            (true, Some(_), None) => (first_x_spike, Some(second)),
+            _ => (first_x_spike, second_x_spike),
+        };
+
+        (first_y_spike, second_y_spike) = match (y_spike, first_y_spike, second_y_spike) {
+            (true, None, None) => (Some(second), None),
+            (true, Some(_), None) => (first_y_spike, Some(second)),
+            _ => (first_y_spike, second_y_spike),
+        };
+
+        if first_x_spike.is_some()
+            && second_x_spike.is_some()
+            && first_y_spike.is_some()
+            && second_y_spike.is_some()
+        {
             break;
         }
-
-        robots.iter_mut().for_each(|robot| robot.r#move(&lobby));
     }
 
+    let first_christmas_tree = find_cycle_intersection(
+        first_x_spike.unwrap(),
+        second_x_spike.unwrap(),
+        first_y_spike.unwrap(),
+        second_y_spike.unwrap(),
+    )
+    .unwrap();
+
     if visualize {
+        let robots = move_robots(&robots, first_christmas_tree, &lobby);
         lobby.print(&robots);
     }
 
@@ -64,17 +113,128 @@ fn parse_input(input: &str) -> Vec<Robot> {
         .collect()
 }
 
+fn move_robots(robots: &[Robot], steps: usize, lobby: &Lobby) -> Vec<Robot> {
+    robots
+        .iter()
+        .map(|robot| {
+            let new_position = robot.new_position(steps, lobby);
+            Robot::new(new_position, robot.velocity)
+        })
+        .collect()
+}
+
 fn calculate_safety_factor(robots: &[Robot], lobby: &Lobby) -> usize {
-    let mut counts: HashMap<Quadrant, usize> = HashMap::new();
+    let mut counts = [0; 4];
 
     robots
         .iter()
         .filter_map(|robot| lobby.quadrant(robot.position))
-        .for_each(|quadrant| {
-            *counts.entry(quadrant).or_insert(0) += 1;
-        });
+        .for_each(|quadrant| counts[quadrant as usize] += 1);
 
-    counts.values().product()
+    counts.iter().product()
+}
+
+fn calculate_xy_mean(robots: &[Robot]) -> (f64, f64) {
+    let n = robots.len() as f64;
+    let (sum_x, sum_y) = robots.iter().fold((0.0, 0.0), |(sx, sy), robot| {
+        let (x, y) = robot.position;
+        (sx + x as f64, sy + y as f64)
+    });
+    (sum_x / n, sum_y / n)
+}
+
+fn calculate_xy_variance(robots: &[Robot], xy_mean: (f64, f64)) -> (f64, f64) {
+    let n = robots.len() as f64;
+    let (mean_x, mean_y) = xy_mean;
+
+    let (var_x, var_y) = robots.iter().fold((0.0, 0.0), |(vx, vy), robot| {
+        let (x, y) = robot.position;
+        (
+            vx + (x as f64 - mean_x).powi(2),
+            vy + (y as f64 - mean_y).powi(2),
+        )
+    });
+
+    (var_x / n, var_y / n)
+}
+
+fn calculate_xy_standard_deviation(variance: (f64, f64)) -> (f64, f64) {
+    (variance.0.sqrt(), variance.1.sqrt())
+}
+
+fn calculate_xy_z_score(
+    value: (f64, f64),
+    mean: (f64, f64),
+    standard_deviation: (f64, f64),
+) -> (f64, f64) {
+    (
+        (value.0 - mean.0).abs() / standard_deviation.0,
+        (value.1 - mean.1).abs() / standard_deviation.1,
+    )
+}
+
+fn update_running_mean(
+    mean: Option<(f64, f64)>,
+    new_value: (f64, f64),
+    count: usize,
+) -> Option<(f64, f64)> {
+    if mean.is_none() {
+        return Some(new_value);
+    }
+
+    let current_mean = mean.unwrap();
+
+    Some((
+        current_mean.0 + (new_value.0 - current_mean.0) / count as f64,
+        current_mean.1 + (new_value.1 - current_mean.1) / count as f64,
+    ))
+}
+
+fn find_cycle_intersection(
+    first_x_spike: usize,
+    second_x_spike: usize,
+    first_y_spike: usize,
+    second_y_spike: usize,
+) -> Option<usize> {
+    let x_period = second_x_spike - first_x_spike;
+    let y_period = second_y_spike - first_y_spike;
+    let phase_diff = first_y_spike as isize - first_x_spike as isize;
+
+    // Solve: first_x_spike + n1 * x_period = first_y_spike + n2 * y_period
+    // Use extended Euclidean algorithm to find solution
+    // ax + by = gcd(a, b)
+    let (gcd, x, _y) = extended_euclidean(x_period as isize, -(y_period as isize));
+
+    // Check solution exists
+    if phase_diff % gcd != 0 {
+        return None;
+    }
+
+    let scale = phase_diff / gcd;
+    let n1 = x * scale;
+    let intersection = first_x_spike as isize + n1 * x_period as isize;
+
+    // Ensure positive result
+    if intersection >= 0 {
+        Some(intersection as usize)
+    } else {
+        // Find the next positive occurrence using LCM
+        let lcm = (x_period * y_period) / gcd as usize;
+        let positive_intersection =
+            intersection + ((-intersection / lcm as isize + 1) * lcm as isize);
+        Some(positive_intersection as usize)
+    }
+}
+
+fn extended_euclidean(a: isize, b: isize) -> (isize, isize, isize) {
+    if a == 0 {
+        (b, 0, 1)
+    } else {
+        let (gcd, x1, y1) = extended_euclidean(b % a, a);
+        let x = y1 - (b / a) * x1;
+        let y = x1;
+        (gcd, x, y)
+    }
 }
 
 /*-----------------------------------------------------------------------------
@@ -92,32 +252,13 @@ impl Robot {
         Self { position, velocity }
     }
 
-    fn r#move(&mut self, lobby: &Lobby) {
-        let width = lobby.width;
-        let height = lobby.height;
-
+    fn new_position(&self, steps: usize, lobby: &Lobby) -> Position {
         let (x, y) = self.position;
         let (vx, vy) = self.velocity;
-
-        let next_x = x + vx;
-        let next_x = if next_x < 0 {
-            width + next_x
-        } else if next_x >= width {
-            next_x % width
-        } else {
-            next_x
-        };
-
-        let next_y = y + vy;
-        let next_y = if next_y < 0 {
-            height + next_y
-        } else if next_y >= height {
-            next_y % height
-        } else {
-            next_y
-        };
-
-        self.position = (next_x, next_y);
+        (
+            ((x + vx * steps as isize) % lobby.width + lobby.width) % lobby.width,
+            ((y + vy * steps as isize) % lobby.height + lobby.height) % lobby.height,
+        )
     }
 }
 
@@ -185,10 +326,10 @@ impl Lobby {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 enum Quadrant {
-    Q1,
-    Q2,
-    Q3,
-    Q4,
+    Q1 = 0,
+    Q2 = 1,
+    Q3 = 2,
+    Q4 = 3,
 }
 
 /*-------------------------------------------------------------------------------------------------
