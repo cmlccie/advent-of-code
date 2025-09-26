@@ -21,8 +21,9 @@ pub fn part1(input: &str, width: isize, height: isize) -> Option<String> {
 
 pub fn part2(input: &str, visualize: bool) -> Option<String> {
     let lobby = Lobby::new(101, 103);
-    let robots = parse_input(input);
+    let robots_at_start = parse_input(input);
 
+    let mut robots = robots_at_start.clone();
     let mut running_xy_mean: Option<(f64, f64)> = None;
     let mut running_xy_variance: Option<(f64, f64)> = None;
 
@@ -32,8 +33,6 @@ pub fn part2(input: &str, visualize: bool) -> Option<String> {
     let mut second_y_spike: Option<usize> = None;
 
     for second in 0..1000 {
-        let robots = move_robots(&robots, second, &lobby);
-
         let xy_mean = calculate_xy_mean(&robots);
         let xy_variance = calculate_xy_variance(&robots, xy_mean);
 
@@ -73,6 +72,10 @@ pub fn part2(input: &str, visualize: bool) -> Option<String> {
         {
             break;
         }
+
+        robots
+            .iter_mut()
+            .for_each(|robot| robot.move_one_step(&lobby));
     }
 
     let first_christmas_tree = find_cycle_intersection(
@@ -84,7 +87,7 @@ pub fn part2(input: &str, visualize: bool) -> Option<String> {
     .unwrap();
 
     if visualize {
-        let robots = move_robots(&robots, first_christmas_tree, &lobby);
+        let robots = move_robots(&robots_at_start, first_christmas_tree, &lobby);
         lobby.print(&robots);
     }
 
@@ -241,7 +244,7 @@ fn extended_euclidean(a: isize, b: isize) -> (isize, isize, isize) {
   Robot
 -----------------------------------------------------------------------------*/
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Robot {
     position: Position,
     velocity: Velocity,
@@ -256,9 +259,14 @@ impl Robot {
         let (x, y) = self.position;
         let (vx, vy) = self.velocity;
         (
-            ((x + vx * steps as isize) % lobby.width + lobby.width) % lobby.width,
-            ((y + vy * steps as isize) % lobby.height + lobby.height) % lobby.height,
+            (x + vx * steps as isize).rem_euclid(lobby.width),
+            (y + vy * steps as isize).rem_euclid(lobby.height),
         )
+    }
+
+    fn move_one_step(&mut self, lobby: &Lobby) {
+        let new_position = self.new_position(1, lobby);
+        self.position = new_position;
     }
 }
 
