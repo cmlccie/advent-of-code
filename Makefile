@@ -56,3 +56,33 @@ target/release/aoc24: $(AOC_2024_SOURCE_FILES)
 
 bench-2024:
 	cargo bench --package aoc24
+
+
+# --------------------------------------------------------------------------------------
+# 2015 Targets
+# --------------------------------------------------------------------------------------
+
+.PHONY: tests-2015 tests-slow-2015 build-2015 clean-2015 data-2015
+
+AOC_2015_GRADLE := cd 2015/java && ./gradlew --quiet
+
+tests-2015:
+	$(AOC_2015_GRADLE) test
+
+tests-slow-2015:
+	$(AOC_2015_GRADLE) testSlow
+
+build-2015:
+	$(AOC_2015_GRADLE) installDist
+	cd 2015 && ln -sf java/build/install/aoc15/bin/aoc15 aoc
+
+clean-2015:
+	$(AOC_2015_GRADLE) clean
+	rm -f 2015/aoc
+
+# Create empty data files for a day: make data-2015 DAY=1
+data-2015:
+	@test -n "$(DAY)" || (echo "usage: make data-2015 DAY=<n>" && exit 1)
+	mkdir -p 2015/data/day$(DAY)
+	cd 2015/data/day$(DAY) && touch example.txt example-part1-answer.txt example-part2-answer.txt \
+		input.txt input-part1-answer.txt input-part2-answer.txt

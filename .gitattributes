@@ -1,2 +1,3 @@
 2023/inputs/** filter=git-crypt diff=git-crypt
 2024/data/** filter=git-crypt diff=git-crypt
+2015/data/** filter=git-crypt diff=git-crypt
