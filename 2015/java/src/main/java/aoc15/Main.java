@@ -53,7 +53,9 @@ public final class Main {
         };
 
         part.apply(Inputs.getInput(args[2]))
-                .ifPresent(answer -> System.out.println("Answer: " + answer));
+                .ifPresentOrElse(
+                        answer -> System.out.println("Answer: " + answer),
+                        () -> System.err.println("No answer"));
     }
 
     private static Optional<Solution> parseDay(String day) {
