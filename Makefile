@@ -9,15 +9,15 @@
 .DEFAULT_GOAL := build
 .PHONY: tests tests-slow build
 
-tests: tests-2024
+tests: tests-2015
 
-tests-slow: tests-slow-2024
+tests-slow: tests-slow-2015
 
-test-benches: tests-benches-2024
+test-benches: tests-benches-2015
 
-build: build-2024
+build: build-2015
 
-bench: bench-2024
+bench: bench-2015
 
 # --------------------------------------------------------------------------------------
 # Repository Targets
